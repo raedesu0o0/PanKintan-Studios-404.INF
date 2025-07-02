@@ -6,6 +6,8 @@ using UnityEngine.InputSystem;
 public class PlayerMovement : MonoBehaviour
 {
     public Rigidbody2D rb;
+    public Animator animator;
+    
     [Header("Movement")]
     public float moveSpeed = 5f;
     float horizontalMovement;
@@ -25,6 +27,11 @@ public class PlayerMovement : MonoBehaviour
     public float maxFallSpeed = 18f;
     public float fallGravityMult = 2f;
 
+    void Start()
+    {
+        jumpsRemaining = maxJumps;
+    }
+
     void Update()
     {
         rb.velocity = new Vector2(horizontalMovement * moveSpeed, rb.velocity.y);
@@ -40,7 +47,9 @@ public class PlayerMovement : MonoBehaviour
             rb.gravityScale = baseGravity;
         }
 
-        GroundCheck();
+        // GroundCheck removed
+        animator.SetFloat("yvelocity", rb.velocity.y);
+        animator.SetFloat("Magnitude",rb.velocity.magnitude);
     }
 
     public void Move(InputAction.CallbackContext context)
@@ -50,30 +59,20 @@ public class PlayerMovement : MonoBehaviour
 
     public void Jump(InputAction.CallbackContext context)
     {
-        if(jumpsRemaining > 0)
+        // Allow jumping at any time (no ground check or jump limit)
+        if (context.performed)
         {
-            if (context.performed)
-            {
-                //Hold down jump button = full height
-                rb.velocity = new Vector2(rb.velocity.x, jumpPower);
-                jumpsRemaining--;
-            }
-            else if (context.canceled && rb.velocity.y > 0)
-            {
-                //Light tap of jump button = half the height
-                rb.velocity = new Vector2(rb.velocity.x, rb.velocity.y * 0.5f);
-                jumpsRemaining--;
-            }
+            rb.velocity = new Vector2(rb.velocity.x, jumpPower);
+            animator.SetTrigger("Jump");
+        }
+        else if (context.canceled && rb.velocity.y > 0)
+        {
+            rb.velocity = new Vector2(rb.velocity.x, rb.velocity.y * 0.5f);
+            animator.SetTrigger("Jump");
         }
     }
 
-    private void GroundCheck()
-    {
-        if (Physics2D.OverlapBox(groundCheckPos.position, groundCheckSize, 0, groundLayer)) //checks if set box overlaps with ground
-        {
-            jumpsRemaining = maxJumps;
-        }
-    }
+    // GroundCheck removed
 
     private void OnDrawGizmosSelected()
     {

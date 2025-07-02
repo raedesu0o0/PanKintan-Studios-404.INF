@@ -10,6 +10,10 @@ public class Enemy : MonoBehaviour
     private Rigidbody2D rb;
     private bool isGrounded;
     private bool shouldJump;
+    public Transform groundCheckPos;
+    public float groundCheckRadius = 0.2f;
+
+    public int damage = 1;
 
     //Start is called before the first frame update
 
@@ -20,52 +24,31 @@ public class Enemy : MonoBehaviour
 
     void Update()
     {
-        //Is Grounded?
-        isGrounded = Physics2D.Raycast(transform.position, Vector2.down, 1f, groundLayer);
+        // Ground check removed
+    }
+
+    private void FixedUpdate()
+    {
+        if (player == null) {
+            Debug.LogWarning("[Enemy] Player reference is not set!");
+            return;
+        }
 
         //Player Direction
         float direction = Mathf.Sign(player.position.x - transform.position.x);
+        Debug.Log($"[Enemy] direction: {direction}, chaseSpeed: {chaseSpeed}");
 
-        //Player above detection
-        bool isPlayerAbove = Physics2D.Raycast(transform.position, Vector2.up, 3f, 1 << player.gameObject.layer);
-
-        if (isGrounded)
-        {
-            //Chase Player
-            rb.velocity = new Vector2(direction * chaseSpeed, rb.velocity.y);
-
-            //Jump if there's a gap ahead && no ground infront
-            //else if there's player above and platform below
-
-            //If Ground
-            RaycastHit2D groundInFront = Physics2D.Raycast(transform.position, new Vector2(direction, 0), 2f, groundLayer);
-            //If Gap
-            RaycastHit2D gapAhead = Physics2D.Raycast(transform.position + new Vector3(direction, 0, 0), Vector2.down, 2f, groundLayer);
-            //If platform above
-            RaycastHit2D platformAbove = Physics2D.Raycast(transform.position, Vector2.up, 3f, groundLayer);
-
-            if(!groundInFront.collider && !gapAhead.collider)
-            {
-                shouldJump = true;
-            }
-            else if (isPlayerAbove && platformAbove.collider)
-            {
-                shouldJump = true;
-            }
-        }
-        Debug.DrawRay(transform.position, Vector2.down * 1f, Color.red);
-        Debug.Log("Distance to player: " + Vector2.Distance(player.position, transform.position));
-
+        //Chase Player at all times (no ground check)
+        rb.velocity = new Vector2(direction * chaseSpeed, rb.velocity.y);
+        Debug.Log($"[Enemy] Setting velocity to: {rb.velocity}");
     }
-    private void FixedUpdate()
+
+    private void OnDrawGizmosSelected()
     {
-        if(isGrounded && shouldJump)
-        {
-            shouldJump = false;
-            Vector2 direction = (player.position - transform.position).normalized;
-            Vector2 jumpDirection = direction * jumpForce;
-            rb.AddForce(new Vector2(jumpDirection.x, jumpForce), ForceMode2D.Impulse);
-        }
+        // Visualize ground check
+        Vector2 checkPos = groundCheckPos ? (Vector2)groundCheckPos.position : (Vector2)transform.position + Vector2.down * 0.5f;
+        Gizmos.color = Color.red;
+        Gizmos.DrawWireSphere(checkPos, groundCheckRadius);
     }
 
     
