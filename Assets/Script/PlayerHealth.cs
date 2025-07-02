@@ -1,5 +1,7 @@
 using UnityEngine;
 using System.Collections;
+using System;
+
 
 public class PlayerHealth : MonoBehaviour
 {
@@ -8,11 +10,16 @@ public class PlayerHealth : MonoBehaviour
 
     public HealthUI healthUI;
 
+    public SpriteRenderer spriteRenderer; // Reference to the player's sprite renderer
+
+    public static event Action OnPlayerDied;
+
     void Start()
     {
         currentHealth = maxHealth;
         healthUI.SetMaxHearts(maxHealth);
         healthUI.UpdateHealth(currentHealth);
+        ResetHealth();
     }
 
     private void OnTriggerEnter2D(Collider2D collision)
@@ -21,6 +28,14 @@ public class PlayerHealth : MonoBehaviour
         {
             TakeDamage(1);
         }
+    }
+
+    private void ResetHealth()
+    {
+        currentHealth = maxHealth;
+        healthUI.SetMaxHearts(maxHealth);
+        healthUI.UpdateHealth(currentHealth);
+        Debug.Log("Player health reset to max.");
     }
 
     private void TakeDamage(int damage)
@@ -37,6 +52,8 @@ public class PlayerHealth : MonoBehaviour
         {
             Debug.Log("Player has died.");
             StartCoroutine(Respawn());
+            OnPlayerDied?.Invoke(); // Notify subscribers that the player has died
+
         }
     }
 
