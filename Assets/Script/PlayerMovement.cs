@@ -7,10 +7,12 @@ public class PlayerMovement : MonoBehaviour
 {
     public Rigidbody2D rb;
     public Animator animator;
-    
+    public ParticleSystem smokeFX; // Fixed: no space in variable name
+
     [Header("Movement")]
     public float moveSpeed = 5f;
     float horizontalMovement;
+    private bool facingRight = true; // Added for flip logic
 
     [Header("Jumping")]
     public float jumpPower = 10f;
@@ -23,7 +25,7 @@ public class PlayerMovement : MonoBehaviour
     public LayerMask groundLayer;
 
     [Header("Gravity")]
-    public float baseGravity= 2f;
+    public float baseGravity = 2f;
     public float maxFallSpeed = 18f;
     public float fallGravityMult = 2f;
 
@@ -36,20 +38,21 @@ public class PlayerMovement : MonoBehaviour
     {
         rb.velocity = new Vector2(horizontalMovement * moveSpeed, rb.velocity.y);
 
-        //falling gravity
-        if(rb.velocity.y < 0)
+        // Falling gravity
+        if (rb.velocity.y < 0)
         {
-            rb.gravityScale = baseGravity * fallGravityMult; //fall faster and faster
-            rb.velocity = new Vector2(rb.velocity.x, Mathf.Max(rb.velocity.y, -maxFallSpeed)); //max fall speed
+            rb.gravityScale = baseGravity * fallGravityMult;
+            rb.velocity = new Vector2(rb.velocity.x, Mathf.Max(rb.velocity.y, -maxFallSpeed));
         }
         else
         {
             rb.gravityScale = baseGravity;
         }
 
-        // GroundCheck removed
+        Flip(); // Call flip method here
+
         animator.SetFloat("yvelocity", rb.velocity.y);
-        animator.SetFloat("Magnitude",rb.velocity.magnitude);
+        animator.SetFloat("Magnitude", rb.velocity.magnitude);
     }
 
     public void Move(InputAction.CallbackContext context)
@@ -59,24 +62,32 @@ public class PlayerMovement : MonoBehaviour
 
     public void Jump(InputAction.CallbackContext context)
     {
-        // Allow jumping at any time (no ground check or jump limit)
         if (context.performed)
         {
             rb.velocity = new Vector2(rb.velocity.x, jumpPower);
             animator.SetTrigger("Jump");
+            smokeFX.Play(); // Particle effect
         }
         else if (context.canceled && rb.velocity.y > 0)
         {
             rb.velocity = new Vector2(rb.velocity.x, rb.velocity.y * 0.5f);
             animator.SetTrigger("Jump");
+            smokeFX.Play();
         }
     }
 
-    // GroundCheck removed
+    private void Flip()
+    {
+        if ((facingRight && horizontalMovement < 0) || (!facingRight && horizontalMovement > 0))
+        {
+            transform.Rotate(0f, 180f, 0f);
+            facingRight = !facingRight; // Flip the bool
+            smokeFX.Play();
+        }
+    }
 
     private void OnDrawGizmosSelected()
     {
-        //Ground check visual
         Gizmos.color = Color.white;
         Gizmos.DrawWireCube(groundCheckPos.position, groundCheckSize);
     }
