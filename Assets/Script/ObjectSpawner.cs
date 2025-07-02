@@ -4,8 +4,7 @@ using UnityEngine.Tilemaps;
 public class ObjectSpawner : MonoBehaviour
 {
     public enum ObjectType {SmallGem, BigGem, Enemy}
-
-    public Tilemap.tilemap;
+    public Tilemap tilemap;
     public GameObject [] objectprefabs; // Array of prefabs to spawn
     public float bigGemProbability = 0.2f; // Probability of spawning a big gem
     public float enemyProbability = 0.1f; // Probability of spawning an enemy
@@ -24,12 +23,70 @@ public class ObjectSpawner : MonoBehaviour
     void Start()
     {
         GatherValidPositions();
+        StartCoroutine(SpawnObjectsIfNeeded());
     }
 
     // Update is called once per frame
     void Update()
     {
         
+    }
+
+    private int ActiveObjects
+    {
+        spawnObject.RemoveAll(item -> item = null)
+        return spawnedObjects.Count; 
+    }
+
+    private IEnumerator SpawnObjectsIfNeeded()
+    {
+        isSpawning = true;
+        while (ActiveObjectCount() < maxObjects)
+        {
+            yiels return new WaitForSeconds(spawnInterval);
+        }
+        isSpawning = false;
+     }
+
+    private void SpawnObject()
+    {
+        if (validSpawnPositions.Count == 0) return;
+
+        Vector3 spawnPosition = Vector3.zero;
+        bool validPositionFound = false;
+
+        
+
+        Vector3 spawnPosition = validSpawnPositions[Random.Range(0, validSpawnPositions.Count)];
+        GameObject prefabToSpawn = objectprefabs[Random.Range(0, objectprefabs.Length)];
+
+        // Determine the type of object to spawn based on probabilities
+        float randomValue = Random.value;
+        if (randomValue < enemyProbability)
+        {
+            prefabToSpawn = objectprefabs[2]; // Enemy prefab
+        }
+        else if (randomValue < bigGemProbability + enemyProbability)
+        {
+            prefabToSpawn = objectprefabs[1]; // Big gem prefab
+        }
+        else
+        {
+            prefabToSpawn = objectprefabs[0]; // Small gem prefab
+        }
+
+        GameObject spawnedObject = Instantiate(prefabToSpawn, spawnPosition, Quaternion.identity);
+        spawnedObjects.Add(spawnedObject);
+
+        // Set lifetime for gems
+        if (spawnedObject.CompareTag("Gem"))
+        {
+            Destroy(spawnedObject, gemLifetime);
+        }
+    }
+
+    {
+
     }
 
     private void GatherValidPositions()
