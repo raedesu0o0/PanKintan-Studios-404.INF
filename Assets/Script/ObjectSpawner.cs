@@ -1,98 +1,125 @@
 using UnityEngine;
 using UnityEngine.Tilemaps;
+using System.Collections;
+using System.Collections.Generic;
+using System.Linq;
 
 public class ObjectSpawner : MonoBehaviour
 {
-    public enum ObjectType {SmallGem, BigGem, Enemy}
+    public enum ObjectType { SmallGem, BigGem, Enemy }
     public Tilemap tilemap;
-    public GameObject [] objectprefabs; // Array of prefabs to spawn
-    public float bigGemProbability = 0.2f; // Probability of spawning a big gem
-    public float enemyProbability = 0.1f; // Probability of spawning an enemy
-    public int maxObjectsToSpawn = 5; // Maximum number of objects to spawn
-    public float gemLifetime = 5f; // Lifetime of the gems in seconds
-    public float spawnInterval = 0.5f; // Time interval between spawns
+    public GameObject[] objectprefabs;
+    public float bigGemProbability = 0.2f;
+    public float enemyProbability = 0.1f;
+    public int maxObjectsToSpawn = 5;
+    public float gemLifetime = 5f;
+    public float spawnInterval = 0.5f;
 
-    private List<Vector3Int> spawnPositions = new List<Vector3Int>();
+    private List<Vector3> validSpawnPositions = new List<Vector3>();
     private List<GameObject> spawnedObjects = new List<GameObject>();
     private bool isSpawning = false;
 
-
-
-    
-    // Start is called once before the first execution of Update after the MonoBehaviour is created
     void Start()
     {
         GatherValidPositions();
         StartCoroutine(SpawnObjectsIfNeeded());
     }
 
-    // Update is called once per frame
-    void Update()
+    void Update() 
     {
-        
+        if (!isSpawning && ActiveObjectCount() < maxObjectsToSpawn)
+        {
+            StartCoroutine(SpawnObjectsIfNeeded());
+        }
     }
 
-    private int ActiveObjects
+    public void ResetSpawner()
     {
-        spawnObject.RemoveAll(item -> item = null)
-        return spawnedObjects.Count; 
+        // Destroy all spawned objects
+        foreach (var obj in spawnedObjects)
+        {
+            if (obj != null) Destroy(obj);
+        }
+        spawnedObjects.Clear();
+
+        // Re-gather valid positions
+        GatherValidPositions();
+
+        // Start spawning again
+        StopAllCoroutines();
+        isSpawning = false;
+        StartCoroutine(SpawnObjectsIfNeeded());
+    }
+
+    private int ActiveObjectCount()
+    {
+        spawnedObjects.RemoveAll(item => item == null);
+        return spawnedObjects.Count;
     }
 
     private IEnumerator SpawnObjectsIfNeeded()
     {
         isSpawning = true;
-        while (ActiveObjectCount() < maxObjects)
+        while (ActiveObjectCount() < maxObjectsToSpawn)
         {
-            yiels return new WaitForSeconds(spawnInterval);
+            SpawnObject();
+            yield return new WaitForSeconds(spawnInterval);
         }
         isSpawning = false;
-     }
+    }
+
+    private bool PositionHasObject(Vector3 positionToCheck)
+    {
+        return spawnedObjects.Any(checkObj => checkObj != null && Vector3.Distance(checkObj.transform.position, positionToCheck) < 0.1f);
+    }
+
+    private ObjectType RandomObjectType()
+    {
+        float randomChoice = Random.value;
+        if (randomChoice <= enemyProbability)
+            return ObjectType.Enemy;
+        else if (randomChoice <= bigGemProbability + enemyProbability)
+            return ObjectType.BigGem;
+        else
+            return ObjectType.SmallGem;
+    }
 
     private void SpawnObject()
     {
         if (validSpawnPositions.Count == 0) return;
 
-        Vector3 spawnPosition = Vector3.zero;
-        bool validPositionFound = false;
+        int randomIndex = Random.Range(0, validSpawnPositions.Count);
+        Vector3 spawnPosition = validSpawnPositions[randomIndex];
 
-        while(!validPositionFound && validSpawnPositions.Count > 0)
+        Camera cam = Camera.main;
+        if (cam != null)
         {
-            int randomIndex = Random.Range(0, validSpawnPositions.Count);
-            Vector3 potentialPosition = validSpawnPositions[randomIndex];
+            Vector3 viewPos = cam.WorldToViewportPoint(spawnPosition);
+            if (viewPos.x < 0f || viewPos.x > 1f || viewPos.y < 0f || viewPos.y > 1f)
+            {
+                validSpawnPositions.RemoveAt(randomIndex);
+                return;
+            }
         }
 
-        
+        ObjectType objectType = RandomObjectType();
+        GameObject prefabToSpawn = objectprefabs[(int)objectType];
 
-        Vector3 spawnPosition = validSpawnPositions[Random.Range(0, validSpawnPositions.Count)];
-        GameObject prefabToSpawn = objectprefabs[Random.Range(0, objectprefabs.Length)];
-
-        // Determine the type of object to spawn based on probabilities
-        float randomValue = Random.value;
-        if (randomValue < enemyProbability)
+        Vector3 leftPosition = spawnPosition + Vector3.left;
+        Vector3 rightPosition = spawnPosition + Vector3.right;
+        if (PositionHasObject(leftPosition) || PositionHasObject(rightPosition))
         {
-            prefabToSpawn = objectprefabs[2]; // Enemy prefab
-        }
-        else if (randomValue < bigGemProbability + enemyProbability)
-        {
-            prefabToSpawn = objectprefabs[1]; // Big gem prefab
-        }
-        else
-        {
-            prefabToSpawn = objectprefabs[0]; // Small gem prefab
+            validSpawnPositions.RemoveAt(randomIndex);
+            return;
         }
 
         GameObject spawnedObject = Instantiate(prefabToSpawn, spawnPosition, Quaternion.identity);
         spawnedObjects.Add(spawnedObject);
 
-        // Set lifetime for gems
-        if (spawnedObject.CompareTag("Gem"))
+        if (objectType != ObjectType.Enemy)
         {
             Destroy(spawnedObject, gemLifetime);
         }
-    }
-
-    {
-
     }
 
     private void GatherValidPositions()
@@ -100,14 +127,13 @@ public class ObjectSpawner : MonoBehaviour
         validSpawnPositions.Clear();
         BoundsInt bounds = tilemap.cellBounds;
         TileBase[] allTiles = tilemap.GetTilesBlock(bounds);
-        Vector3 start = tilemap.CellToWorld(new Vector3Int(boundsInt.xMin, boundsInt.yMin, 0));
+        Vector3 start = tilemap.CellToWorld(new Vector3Int(bounds.xMin, bounds.yMin, 0));
 
-        for (int x = 0; y < bounds.size.x; x++)
+        for (int x = 0; x < bounds.size.x; x++)
         {
-            for (int y = 0; x < bounds.size.y; y++)
+            for (int y = 0; y < bounds.size.y; y++)
             {
                 TileBase tile = allTiles[x + y * bounds.size.x];
-
                 if (tile != null)
                 {
                     Vector3 place = start + new Vector3(x + 0.5f, y + 2f, 0);

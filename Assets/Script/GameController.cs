@@ -38,6 +38,7 @@ public class GameController : MonoBehaviour
     void ShowGameOverScreen()
     {
         gameOverScreen.SetActive(true);
+        MusicManager.PauseBackgroundMusic();
         survivedText.text = "You Survived " + survivedLevelsCount + " Level" + (survivedLevelsCount == 1 ? "" : "s");
         Time.timeScale = 0; // Pause the game
     }
@@ -45,10 +46,18 @@ public class GameController : MonoBehaviour
     public void ResetGame()
     {
         gameOverScreen.SetActive(false);
+        MusicManager.PlayBackgroundMusic();
         survivedLevelsCount = 0;
         LoadLevel(0, false);
         OnReset?.Invoke(); // Notify subscribers that the game has been reset
         Time.timeScale = 1; // Resume the game
+
+        // Only reset the spawner if no UI transitions or animations are active
+        if (!IsBusyWithUIOrAnimation())
+        {
+            var spawner = FindObjectOfType<ObjectSpawner>();
+            if (spawner != null) spawner.ResetSpawner();
+        }
     }
 
     void IncreaseProgressAmount(int amount)
@@ -75,7 +84,22 @@ public class GameController : MonoBehaviour
         currentLevelIndex = level;
         progressAmount = 0;
         progressSlider.value = 0;
-        if (wantSurvivedIncrease) survivedLevelsCount++;  
+        if (wantSurvivedIncrease) survivedLevelsCount++;
+
+        // Only reset the spawner if no UI transitions or animations are active
+        if (!IsBusyWithUIOrAnimation())
+        {
+            var spawner = FindObjectOfType<ObjectSpawner>();
+            if (spawner != null) spawner.ResetSpawner();
+        }
+    }
+
+    // Dummy check for UI/animation/coroutine activity. Replace with your own logic if needed.
+    private bool IsBusyWithUIOrAnimation()
+    {
+        // Example: return AnimatorIsPlaying() || UIIsTransitioning();
+        // For now, always return false (not busy)
+        return false;
     }
 
     void LoadNextLevel()

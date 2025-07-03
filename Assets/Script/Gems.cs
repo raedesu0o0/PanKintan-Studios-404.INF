@@ -9,6 +9,7 @@ public class Gems : MonoBehaviour, IITEM
     public void Collect()
     {
         OnGemCollect.Invoke(worth);
+        SoundEffectsManager.Play("Memory Shards");
         Destroy(gameObject);
     }
 }
