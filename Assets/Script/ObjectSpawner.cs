@@ -55,6 +55,12 @@ public class ObjectSpawner : MonoBehaviour
         Vector3 spawnPosition = Vector3.zero;
         bool validPositionFound = false;
 
+        while(!validPositionFound && validSpawnPositions.Count > 0)
+        {
+            int randomIndex = Random.Range(0, validSpawnPositions.Count);
+            Vector3 potentialPosition = validSpawnPositions[randomIndex];
+        }
+
         
 
         Vector3 spawnPosition = validSpawnPositions[Random.Range(0, validSpawnPositions.Count)];
