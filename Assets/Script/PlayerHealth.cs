@@ -27,7 +27,7 @@ public class PlayerHealth : MonoBehaviour
         if (collision.CompareTag("Enemy"))
         {
             TakeDamage(1);
-            SoundEffectsManager.Play("Player Hit"); // Play sound effect when taking damage
+            //SoundEffectsManager.Play("Player Hit"); // Play sound effect when taking damage
         }
     }
 

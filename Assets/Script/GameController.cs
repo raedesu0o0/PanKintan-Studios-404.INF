@@ -38,7 +38,7 @@ public class GameController : MonoBehaviour
     void ShowGameOverScreen()
     {
         gameOverScreen.SetActive(true);
-        MusicManager.PauseBackgroundMusic();
+        //SoundManager.PauseBackgroundMusic(); // If you want to use a different class, change 'SoundManager' to the correct class name
         survivedText.text = "You Survived " + survivedLevelsCount + " Level" + (survivedLevelsCount == 1 ? "" : "s");
         Time.timeScale = 0; // Pause the game
     }
@@ -46,7 +46,7 @@ public class GameController : MonoBehaviour
     public void ResetGame()
     {
         gameOverScreen.SetActive(false);
-        MusicManager.PlayBackgroundMusic();
+        //SoundManager.PlayBackgroundMusic();
         survivedLevelsCount = 0;
         LoadLevel(0, false);
         OnReset?.Invoke(); // Notify subscribers that the game has been reset

@@ -40,34 +40,36 @@ public class MusicManager : MonoBehaviour
 
     public static void PlayBackgroundMusic(bool resetSong, AudioClip audioClip = null)
     {
+        if (Instance == null) return;
         if (audioClip != null)
         {
-            audioSource.clip = audioClip;
+            Instance.audioSource.clip = audioClip;
         }
-        else if (audioSource.clip != null)
+        else if (Instance.audioSource.clip != null)
         {
             if (resetSong)
             {
-                Instance audioSource.Stop();
+                Instance.audioSource.Stop();
             }
         }
 
-        audioSource.Play();
+        Instance.audioSource.Play();
     }
 
     public static void PauseBackgroundMusic()
     {
-        Instance audioSource.Pause();
+        if (Instance == null) return;
+        Instance.audioSource.Pause();
     }
 
     public void ResumeBackgroundMusic()
     {
-        Instance audioSource.UnPause();
+        Instance.audioSource.UnPause();
     }
 
     public void SetVolume(float volume)
     {
-        Instance audioSource.volume = volume;
+        Instance.audioSource.volume = volume;
     }
 
     public void OnSliderValueChanged()

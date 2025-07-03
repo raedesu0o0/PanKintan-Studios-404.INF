@@ -1,38 +1,39 @@
-
+using System;
+using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 
-public class SoundEffectsLib : MonoBehaviour
+public class SoundEffectLib : MonoBehaviour
 {
     [SerializeField] private SoundEffectGroup[] soundEffectGroups;
     private Dictionary<string, List<AudioClip>> soundDictionary;
 
     private void Awake()
     {
-        InitializeSoundDictionary();
+        InitializeDictionary();
     }
 
-    private void InitializeSoundDictionary()
+    private void InitializeDictionary()
     {
         soundDictionary = new Dictionary<string, List<AudioClip>>();
-        foreach (var group in soundEffectGroups)
+
+        foreach (SoundEffectGroup soundEffectGroup in soundEffectGroups)
         {
-            if (!soundDictionary.ContainsKey(group.name))
-            {
-                soundDictionary[group.name] = new List<AudioClip>();
-            }
-            soundDictionary[group.name].AddRange(group.audioClips);
+            soundDictionary[soundEffectGroup.name] = soundEffectGroup.audioClips;
         }
     }
-    
-    public AudioClip GetRandomSound(string groupName)
+
+    public AudioClip GetRandomClip(string name)
     {
-        if (soundDictionary.ContainsKey(groupName) && soundDictionary[groupName].Count > 0)
+        if (soundDictionary.ContainsKey(name))
         {
-            var clips = soundDictionary[groupName];
-            return clips[Random.Range(0, clips.Count)];
+            List<AudioClip> audioClips = soundDictionary[name];
+            if (audioClips.Count > 0)
+            {
+                return audioClips[UnityEngine.Random.Range(0, audioClips.Count)];
+            }
         }
-        Debug.LogWarning($"Sound group '{groupName}' not found or has no audio clips.");
+
         return null;
     }
 }

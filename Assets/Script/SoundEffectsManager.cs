@@ -6,7 +6,7 @@ public class SoundEffectsManager : MonoBehaviour
 {
     private static SoundEffectsManager Instance;
     private static AudioSource audioSource;
-    private static SoundEffectsLib soundEffectsLib;
+    private static SoundEffectLib soundEffectLib;
 
     [SerializeField] private Slider sfxSlider;
 
@@ -17,7 +17,7 @@ public class SoundEffectsManager : MonoBehaviour
         {
             Instance = this;
             audioSource = GetComponent<AudioSource>();
-            soundEffectsLib = GetComponent<SoundEffectsLib>();
+            soundEffectLib = GetComponent<SoundEffectLib>();
             DontDestroyOnLoad(gameObject);
         }
         else
@@ -29,7 +29,7 @@ public class SoundEffectsManager : MonoBehaviour
 
     public static void Play(string soundName)
     {
-        AudioClip audioClip = soundEffectsLib.GetRandomSound(soundName);
+        AudioClip audioClip = soundEffectLib.GetRandomClip(soundName);
         if (audioClip != null)
         {
             audioSource.PlayOneShot(audioClip);
