@@ -1,5 +1,3 @@
-using System.Collections;
-using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.InputSystem;
 
@@ -7,12 +5,12 @@ public class PlayerMovement : MonoBehaviour
 {
     public Rigidbody2D rb;
     public Animator animator;
-    public ParticleSystem smokeFX; // Fixed: no space in variable name
+    public ParticleSystem smokeFX;
 
     [Header("Movement")]
     public float moveSpeed = 5f;
     float horizontalMovement;
-    private bool facingRight = true; // Added for flip logic
+    private bool facingRight = true;
 
     [Header("Jumping")]
     public float jumpPower = 10f;
@@ -36,9 +34,16 @@ public class PlayerMovement : MonoBehaviour
 
     void Update()
     {
+        // Flip & animation
+        Flip();
+        animator.SetFloat("yvelocity", rb.velocity.y);
+        animator.SetFloat("Magnitude", rb.velocity.magnitude);
+    }
+
+    void FixedUpdate()
+    {
         rb.velocity = new Vector2(horizontalMovement * moveSpeed, rb.velocity.y);
 
-        // Falling gravity
         if (rb.velocity.y < 0)
         {
             rb.gravityScale = baseGravity * fallGravityMult;
@@ -48,11 +53,6 @@ public class PlayerMovement : MonoBehaviour
         {
             rb.gravityScale = baseGravity;
         }
-
-        Flip(); // Call flip method here
-
-        animator.SetFloat("yvelocity", rb.velocity.y);
-        animator.SetFloat("Magnitude", rb.velocity.magnitude);
     }
 
     public void Move(InputAction.CallbackContext context)
@@ -62,17 +62,17 @@ public class PlayerMovement : MonoBehaviour
 
     public void Jump(InputAction.CallbackContext context)
     {
-        if (context.performed)
+        if (context.performed && (IsGrounded() || jumpsRemaining > 0))
         {
             rb.velocity = new Vector2(rb.velocity.x, jumpPower);
-            animator.SetTrigger("Jump");
-            smokeFX.Play(); // Particle effect
-        }
-        else if (context.canceled && rb.velocity.y > 0)
-        {
-            rb.velocity = new Vector2(rb.velocity.x, rb.velocity.y * 0.5f);
+            jumpsRemaining--;
             animator.SetTrigger("Jump");
             smokeFX.Play();
+        }
+
+        if (context.canceled && rb.velocity.y > 0)
+        {
+            rb.velocity = new Vector2(rb.velocity.x, rb.velocity.y * 0.5f);
         }
     }
 
@@ -81,14 +81,27 @@ public class PlayerMovement : MonoBehaviour
         if ((facingRight && horizontalMovement < 0) || (!facingRight && horizontalMovement > 0))
         {
             transform.Rotate(0f, 180f, 0f);
-            facingRight = !facingRight; // Flip the bool
+            facingRight = !facingRight;
             smokeFX.Play();
         }
+    }
+
+    private bool IsGrounded()
+    {
+        return Physics2D.OverlapBox(groundCheckPos.position, groundCheckSize, 0f, groundLayer);
     }
 
     private void OnDrawGizmosSelected()
     {
         Gizmos.color = Color.white;
         Gizmos.DrawWireCube(groundCheckPos.position, groundCheckSize);
+    }
+
+    void LateUpdate()
+    {
+        if (IsGrounded())
+        {
+            jumpsRemaining = maxJumps;
+        }
     }
 }

@@ -1,11 +1,10 @@
 using UnityEngine;
-using System.Collections;
 using System;
-
+using System.Collections;
 
 public class PlayerHealth : MonoBehaviour
 {
-    public int maxHealth = 3;
+public int maxHealth = 3;
     private int currentHealth;
 
     public HealthUI healthUI;
@@ -27,7 +26,17 @@ public class PlayerHealth : MonoBehaviour
         if (collision.CompareTag("Enemy"))
         {
             TakeDamage(1);
-            //SoundEffectsManager.Play("Player Hit"); // Play sound effect when taking damage
+            SoundEffectsManager.Play("Player Hit"); // Play sound effect when taking damage
+        }
+        Traps trap = collision.GetComponent<Traps>();
+        if (trap)
+        {
+            TakeDamage(trap.damage);
+            Rigidbody2D rb = GetComponent<Rigidbody2D>();
+            if (rb != null)
+            {
+                rb.linearVelocity = new Vector2(rb.linearVelocity.x, trap.bounceForce);
+            }
         }
     }
 
@@ -39,7 +48,7 @@ public class PlayerHealth : MonoBehaviour
         Debug.Log("Player health reset to max.");
     }
 
-    private void TakeDamage(int damage)
+    public void TakeDamage(int damage)
     {
         currentHealth -= damage;
         if (currentHealth < 0)
@@ -47,14 +56,11 @@ public class PlayerHealth : MonoBehaviour
             currentHealth = 0;
         }
         healthUI.UpdateHealth(currentHealth);
-        StartCoroutine(FlashRed());
 
         if (currentHealth == 0)
         {
+            // Handle player death (e.g., reload scene, show game over screen, etc.)
             Debug.Log("Player has died.");
-            StartCoroutine(Respawn());
-            OnPlayerDied?.Invoke(); // Notify subscribers that the player has died
-
         }
     }
 

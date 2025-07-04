@@ -62,7 +62,7 @@ public class MusicManager : MonoBehaviour
         Instance.audioSource.Pause();
     }
 
-    public void ResumeBackgroundMusic()
+    public static void ResumeBackgroundMusic()
     {
         Instance.audioSource.UnPause();
     }

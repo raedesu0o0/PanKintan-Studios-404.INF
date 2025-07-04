@@ -1,66 +1,85 @@
 using UnityEngine;
 using UnityEngine.UI;
-using TMPro; // You forgot to import this
+using TMPro;
 using System;
 using System.Collections.Generic;
 
 public class GameController : MonoBehaviour
 {
-    int progressAmount;
+    [Header("UI Elements")]
     public Slider progressSlider;
-
-    public GameObject player;
     public GameObject loadCanvas;
-    public List<GameObject> levels;
-
     public GameObject gameOverScreen;
     public TMP_Text survivedText;
-    private int survivedLevelsCount;
+
+    [Header("Gameplay Elements")]
+    public GameObject player;
+    public List<GameObject> levels;
 
     public static event Action OnReset;
 
-
+    private int progressAmount;
     private int currentLevelIndex = 0;
+    private int survivedLevelsCount;
 
-    void Start()
+    private ObjectSpawner spawner;
+
+    private void Start()
     {
+        // Ensure game isn't frozen
+        Time.timeScale = 1f;
+
         progressAmount = 0;
         progressSlider.value = 0;
 
+        // Subscribe to events
         Gems.OnGemCollect += IncreaseProgressAmount;
         HoldToLoadLevel.OnHoldComplete += LoadNextLevel;
         PlayerHealth.OnPlayerDied += ShowGameOverScreen;
 
+        // Initial UI setup
         loadCanvas.SetActive(false);
         gameOverScreen.SetActive(false);
+
+        // Cache spawner reference early
+        spawner = FindObjectOfType<ObjectSpawner>();
+
+        // Ensure first level is active
+        LoadLevel(0, false);
     }
 
-    void ShowGameOverScreen()
+    private void OnDestroy()
+    {
+        // Unsubscribe to prevent memory leaks
+        Gems.OnGemCollect -= IncreaseProgressAmount;
+        HoldToLoadLevel.OnHoldComplete -= LoadNextLevel;
+        PlayerHealth.OnPlayerDied -= ShowGameOverScreen;
+    }
+
+    private void ShowGameOverScreen()
     {
         gameOverScreen.SetActive(true);
-        //SoundManager.PauseBackgroundMusic(); // If you want to use a different class, change 'SoundManager' to the correct class name
         survivedText.text = "You Survived " + survivedLevelsCount + " Level" + (survivedLevelsCount == 1 ? "" : "s");
-        Time.timeScale = 0; // Pause the game
+        Time.timeScale = 0f; // Freeze the game
     }
 
     public void ResetGame()
     {
         gameOverScreen.SetActive(false);
-        //SoundManager.PlayBackgroundMusic();
+        MusicManager.ResumeBackgroundMusic(); // Resume music if paused
+        Time.timeScale = 1f;
         survivedLevelsCount = 0;
-        LoadLevel(0, false);
-        OnReset?.Invoke(); // Notify subscribers that the game has been reset
-        Time.timeScale = 1; // Resume the game
 
-        // Only reset the spawner if no UI transitions or animations are active
-        if (!IsBusyWithUIOrAnimation())
+        LoadLevel(0, false);
+        OnReset?.Invoke();
+
+        if (!IsBusyWithUIOrAnimation() && spawner != null)
         {
-            var spawner = FindObjectOfType<ObjectSpawner>();
-            if (spawner != null) spawner.ResetSpawner();
+            spawner.ResetSpawner();
         }
     }
 
-    void IncreaseProgressAmount(int amount)
+    private void IncreaseProgressAmount(int amount)
     {
         progressAmount += amount;
         progressSlider.value = progressAmount;
@@ -72,39 +91,46 @@ public class GameController : MonoBehaviour
         }
     }
 
-    void LoadLevel(int level, bool wantSurvivedIncrease)
+    private void LoadLevel(int level, bool wantSurvivedIncrease)
     {
         loadCanvas.SetActive(false);
+
+        if (level < 0 || level >= levels.Count)
+        {
+            Debug.LogWarning("Invalid level index!");
+            return;
+        }
 
         levels[currentLevelIndex].SetActive(false);
         levels[level].SetActive(true);
 
-        player.transform.position = new Vector3(0, 0, 0);
-
         currentLevelIndex = level;
         progressAmount = 0;
         progressSlider.value = 0;
-        if (wantSurvivedIncrease) survivedLevelsCount++;
 
-        // Only reset the spawner if no UI transitions or animations are active
-        if (!IsBusyWithUIOrAnimation())
+        if (wantSurvivedIncrease)
         {
-            var spawner = FindObjectOfType<ObjectSpawner>();
-            if (spawner != null) spawner.ResetSpawner();
+            survivedLevelsCount++;
+        }
+
+        // Reset player position to origin or safe spawn point
+        player.transform.position = Vector3.zero;
+
+        if (!IsBusyWithUIOrAnimation() && spawner != null)
+        {
+            spawner.ResetSpawner();
         }
     }
 
-    // Dummy check for UI/animation/coroutine activity. Replace with your own logic if needed.
-    private bool IsBusyWithUIOrAnimation()
+    private void LoadNextLevel()
     {
-        // Example: return AnimatorIsPlaying() || UIIsTransitioning();
-        // For now, always return false (not busy)
-        return false;
+        int nextLevelIndex = (currentLevelIndex + 1) % levels.Count;
+        LoadLevel(nextLevelIndex, true);
     }
 
-    void LoadNextLevel()
+    // Stub for checking if game is mid-transition or busy
+    private bool IsBusyWithUIOrAnimation()
     {
-        int nextLevelIndex = (currentLevelIndex == levels.Count - 1) ? 0 : currentLevelIndex + 1;
-        LoadLevel(nextLevelIndex, true);
+        return false; // Replace with actual UI/animation status if needed
     }
 }

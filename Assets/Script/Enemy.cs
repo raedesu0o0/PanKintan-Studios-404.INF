@@ -39,8 +39,8 @@ public class Enemy : MonoBehaviour
         Debug.Log($"[Enemy] direction: {direction}, chaseSpeed: {chaseSpeed}");
 
         //Chase Player at all times (no ground check)
-        rb.velocity = new Vector2(direction * chaseSpeed, rb.velocity.y);
-        Debug.Log($"[Enemy] Setting velocity to: {rb.velocity}");
+        rb.linearVelocity = new Vector2(direction * chaseSpeed, rb.linearVelocity.y);
+        Debug.Log($"[Enemy] Setting velocity to: {rb.linearVelocity}");
     }
 
     private void OnDrawGizmosSelected()

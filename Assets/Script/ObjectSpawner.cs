@@ -7,6 +7,7 @@ using System.Linq;
 public class ObjectSpawner : MonoBehaviour
 {
     public enum ObjectType { SmallGem, BigGem, Enemy }
+
     public Tilemap tilemap;
     public GameObject[] objectprefabs;
     public float bigGemProbability = 0.2f;
@@ -25,27 +26,24 @@ public class ObjectSpawner : MonoBehaviour
         StartCoroutine(SpawnObjectsIfNeeded());
     }
 
-    void Update() 
+    void Update()
     {
         if (!isSpawning && ActiveObjectCount() < maxObjectsToSpawn)
         {
+            isSpawning = true;
             StartCoroutine(SpawnObjectsIfNeeded());
         }
     }
 
     public void ResetSpawner()
     {
-        // Destroy all spawned objects
         foreach (var obj in spawnedObjects)
         {
             if (obj != null) Destroy(obj);
         }
+
         spawnedObjects.Clear();
-
-        // Re-gather valid positions
         GatherValidPositions();
-
-        // Start spawning again
         StopAllCoroutines();
         isSpawning = false;
         StartCoroutine(SpawnObjectsIfNeeded());
@@ -59,26 +57,27 @@ public class ObjectSpawner : MonoBehaviour
 
     private IEnumerator SpawnObjectsIfNeeded()
     {
-        isSpawning = true;
         while (ActiveObjectCount() < maxObjectsToSpawn)
         {
             SpawnObject();
             yield return new WaitForSeconds(spawnInterval);
         }
+
         isSpawning = false;
     }
 
     private bool PositionHasObject(Vector3 positionToCheck)
     {
-        return spawnedObjects.Any(checkObj => checkObj != null && Vector3.Distance(checkObj.transform.position, positionToCheck) < 0.1f);
+        return spawnedObjects.Any(obj => obj != null && Vector3.Distance(obj.transform.position, positionToCheck) < 0.1f);
     }
 
     private ObjectType RandomObjectType()
     {
-        float randomChoice = Random.value;
-        if (randomChoice <= enemyProbability)
+        float rand = Random.value;
+
+        if (rand <= enemyProbability)
             return ObjectType.Enemy;
-        else if (randomChoice <= bigGemProbability + enemyProbability)
+        else if (rand <= bigGemProbability + enemyProbability)
             return ObjectType.BigGem;
         else
             return ObjectType.SmallGem;
@@ -86,45 +85,50 @@ public class ObjectSpawner : MonoBehaviour
 
     private void SpawnObject()
     {
-        if (validSpawnPositions.Count == 0) return;
+        if (validSpawnPositions.Count == 0 || objectprefabs.Length == 0)
+            return;
 
         int randomIndex = Random.Range(0, validSpawnPositions.Count);
         Vector3 spawnPosition = validSpawnPositions[randomIndex];
 
+        // Skip if off camera
         Camera cam = Camera.main;
         if (cam != null)
         {
-            Vector3 viewPos = cam.WorldToViewportPoint(spawnPosition);
-            if (viewPos.x < 0f || viewPos.x > 1f || viewPos.y < 0f || viewPos.y > 1f)
+            Vector3 viewportPos = cam.WorldToViewportPoint(spawnPosition);
+            if (viewportPos.x < 0f || viewportPos.x > 1f || viewportPos.y < 0f || viewportPos.y > 1f)
             {
                 validSpawnPositions.RemoveAt(randomIndex);
                 return;
             }
         }
 
+        // Skip if already occupied
+        if (PositionHasObject(spawnPosition)) return;
+
         ObjectType objectType = RandomObjectType();
         GameObject prefabToSpawn = objectprefabs[(int)objectType];
 
-        Vector3 leftPosition = spawnPosition + Vector3.left;
-        Vector3 rightPosition = spawnPosition + Vector3.right;
-        if (PositionHasObject(leftPosition) || PositionHasObject(rightPosition))
-        {
-            validSpawnPositions.RemoveAt(randomIndex);
-            return;
-        }
+        GameObject spawned = Instantiate(prefabToSpawn, spawnPosition, Quaternion.identity);
+        spawnedObjects.Add(spawned);
 
-        GameObject spawnedObject = Instantiate(prefabToSpawn, spawnPosition, Quaternion.identity);
-        spawnedObjects.Add(spawnedObject);
-
+        // Destroy gems after a while
         if (objectType != ObjectType.Enemy)
         {
-            Destroy(spawnedObject, gemLifetime);
+            Destroy(spawned, gemLifetime);
         }
     }
 
     private void GatherValidPositions()
     {
         validSpawnPositions.Clear();
+
+        if (tilemap == null)
+        {
+            Debug.LogWarning("[ObjectSpawner] Tilemap is not assigned.");
+            return;
+        }
+
         BoundsInt bounds = tilemap.cellBounds;
         TileBase[] allTiles = tilemap.GetTilesBlock(bounds);
         Vector3 start = tilemap.CellToWorld(new Vector3Int(bounds.xMin, bounds.yMin, 0));
@@ -136,10 +140,15 @@ public class ObjectSpawner : MonoBehaviour
                 TileBase tile = allTiles[x + y * bounds.size.x];
                 if (tile != null)
                 {
-                    Vector3 place = start + new Vector3(x + 0.5f, y + 2f, 0);
-                    validSpawnPositions.Add(place);
+                    Vector3 spawnPoint = start + new Vector3(x + 0.5f, y + 2f, 0);
+                    validSpawnPositions.Add(spawnPoint);
                 }
             }
+        }
+
+        if (validSpawnPositions.Count == 0)
+        {
+            Debug.LogWarning("[ObjectSpawner] No valid spawn positions found.");
         }
     }
 }
