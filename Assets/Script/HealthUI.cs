@@ -10,9 +10,8 @@ public class HealthUI : MonoBehaviour
 
     private List<Image> hearts = new List<Image>();
 
-    public void SetMaxHearts(int maxHearts)
+    public void SetMaxHearts(int maxHearts, int currentHealth)
     {
-        // Destroy existing heart icons
         foreach (Image heart in hearts)
         {
             Destroy(heart.gameObject);
@@ -20,12 +19,11 @@ public class HealthUI : MonoBehaviour
 
         hearts.Clear();
 
-        // Create new heart icons
         for (int i = 0; i < maxHearts; i++)
         {
             Image heart = Instantiate(heartPrefab, transform);
-            heart.sprite = fullHeartSprite;
-            heart.color = Color.red;
+            heart.sprite = i < currentHealth ? fullHeartSprite : emptyHeartSprite;
+            heart.color = i < currentHealth ? Color.red : Color.gray;
             hearts.Add(heart);
         }
     }
@@ -34,16 +32,8 @@ public class HealthUI : MonoBehaviour
     {
         for (int i = 0; i < hearts.Count; i++)
         {
-            if (i < currentHealth)
-            {
-                hearts[i].sprite = fullHeartSprite;
-                hearts[i].color = Color.red; // Full heart
-            }
-            else
-            {
-                hearts[i].sprite = emptyHeartSprite;
-                hearts[i].color = Color.gray; // Empty heart
-            }
+            hearts[i].sprite = i < currentHealth ? fullHeartSprite : emptyHeartSprite;
+            hearts[i].color = i < currentHealth ? Color.red : Color.gray;
         }
     }
 }

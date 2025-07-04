@@ -4,20 +4,16 @@ using System.Collections;
 
 public class PlayerHealth : MonoBehaviour
 {
-public int maxHealth = 3;
+    public int maxHealth = 7;
     private int currentHealth;
 
     public HealthUI healthUI;
-
-    public SpriteRenderer spriteRenderer; // Reference to the player's sprite renderer
+    public SpriteRenderer spriteRenderer;
 
     public static event Action OnPlayerDied;
 
     void Start()
     {
-        currentHealth = maxHealth;
-        healthUI.SetMaxHearts(maxHealth);
-        healthUI.UpdateHealth(currentHealth);
         ResetHealth();
     }
 
@@ -26,16 +22,18 @@ public int maxHealth = 3;
         if (collision.CompareTag("Enemy"))
         {
             TakeDamage(1);
-            SoundEffectsManager.Play("Player Hit"); // Play sound effect when taking damage
+            SoundEffectsManager.Play("Player Hit");
         }
+
         Traps trap = collision.GetComponent<Traps>();
         if (trap)
         {
             TakeDamage(trap.damage);
+
             Rigidbody2D rb = GetComponent<Rigidbody2D>();
             if (rb != null)
             {
-                rb.linearVelocity = new Vector2(rb.linearVelocity.x, trap.bounceForce);
+                rb.velocity = new Vector2(rb.velocity.x, trap.bounceForce);
             }
         }
     }
@@ -43,41 +41,62 @@ public int maxHealth = 3;
     private void ResetHealth()
     {
         currentHealth = maxHealth;
-        healthUI.SetMaxHearts(maxHealth);
-        healthUI.UpdateHealth(currentHealth);
-        Debug.Log("Player health reset to max.");
+
+        if (healthUI != null)
+        {
+            healthUI.SetMaxHearts(maxHealth, currentHealth); // ✅ fixed
+            healthUI.UpdateHealth(currentHealth);
+            Debug.Log($"[PlayerHealth] Health reset to {currentHealth}");
+        }
+        else
+        {
+            Debug.LogWarning("[PlayerHealth] healthUI reference not assigned!");
+        }
     }
 
     public void TakeDamage(int damage)
     {
         currentHealth -= damage;
-        if (currentHealth < 0)
+        if (currentHealth < 0) currentHealth = 0;
+
+        if (healthUI != null)
         {
-            currentHealth = 0;
+            healthUI.UpdateHealth(currentHealth);
         }
-        healthUI.UpdateHealth(currentHealth);
 
         if (currentHealth == 0)
         {
-            // Handle player death (e.g., reload scene, show game over screen, etc.)
             Debug.Log("Player has died.");
+            OnPlayerDied?.Invoke();
         }
+    }
+
+    public void AddMaxHealth(int amount)
+    {
+        maxHealth += amount;
+        currentHealth = maxHealth;
+
+        if (healthUI != null)
+        {
+            healthUI.SetMaxHearts(maxHealth, currentHealth); // ✅ fixed
+            healthUI.UpdateHealth(currentHealth);
+        }
+
+        Debug.Log($"[PlayerHealth] Max health increased to {maxHealth}");
     }
 
     private IEnumerator Respawn()
     {
-        // Implement respawn logic here, e.g., wait for a few seconds and reset position
         yield return new WaitForSeconds(2f);
-        transform.position = Vector3.zero; // Reset to starting position
-        currentHealth = maxHealth;
-        healthUI.UpdateHealth(currentHealth);
+        transform.position = Vector3.zero;
+        ResetHealth();
     }
 
     private IEnumerator FlashRed()
     {
-        // Implement flashing effect when taking damage
         SpriteRenderer spriteRenderer = GetComponent<SpriteRenderer>();
         Color originalColor = spriteRenderer.color;
+
         for (int i = 0; i < 3; i++)
         {
             spriteRenderer.color = Color.red;
@@ -85,5 +104,5 @@ public int maxHealth = 3;
             spriteRenderer.color = originalColor;
             yield return new WaitForSeconds(0.1f);
         }
-    } 
+    }
 }
