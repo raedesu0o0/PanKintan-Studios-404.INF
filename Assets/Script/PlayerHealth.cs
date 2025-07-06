@@ -33,7 +33,7 @@ public class PlayerHealth : MonoBehaviour
             Rigidbody2D rb = GetComponent<Rigidbody2D>();
             if (rb != null)
             {
-                rb.velocity = new Vector2(rb.velocity.x, trap.bounceForce);
+                rb.linearVelocity = new Vector2(rb.linearVelocity.x, trap.bounceForce);
             }
         }
     }

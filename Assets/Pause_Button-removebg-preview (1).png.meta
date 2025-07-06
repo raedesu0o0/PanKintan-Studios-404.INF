@@ -1,10 +1,10 @@
 fileFormatVersion: 2
-guid: 403094918cec5624e8cbd5464e8b9631
+guid: 9eb5330e3b803a649b2ff0d45f6f6d11
 TextureImporter:
   internalIDToNameTable:
   - first:
-      213: 7522077046377983429
-    second: Loadinganim_0
+      213: -8020875856238624989
+    second: Pause_Button-removebg-preview (1)_0
   externalObjects: {}
   serializedVersion: 13
   mipmaps:
@@ -113,13 +113,13 @@ TextureImporter:
     serializedVersion: 2
     sprites:
     - serializedVersion: 2
-      name: Loadinganim_0
+      name: Pause_Button-removebg-preview (1)_0
       rect:
         serializedVersion: 2
         x: 0
         y: 0
-        width: 14
-        height: 14
+        width: 225
+        height: 225
       alignment: 0
       pivot: {x: 0, y: 0}
       border: {x: 0, y: 0, z: 0, w: 0}
@@ -128,8 +128,8 @@ TextureImporter:
       physicsShape: []
       tessellationDetail: -1
       bones: []
-      spriteID: 5cdaa725839c36860800000000000000
-      internalID: 7522077046377983429
+      spriteID: 32fb369b7ef10b090800000000000000
+      internalID: -8020875856238624989
       vertices: []
       indices: 
       edges: []
@@ -147,8 +147,7 @@ TextureImporter:
     secondaryTextures: []
     spriteCustomMetadata:
       entries: []
-    nameFileIdTable:
-      Loadinganim_0: 7522077046377983429
+    nameFileIdTable: {}
   mipmapLimitGroupName: 
   pSDRemoveMatte: 0
   userData: 

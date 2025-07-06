@@ -60,6 +60,7 @@ public class GameController : MonoBehaviour
     {
         gameOverScreen.SetActive(true);
         survivedText.text = "You Survived " + survivedLevelsCount + " Level" + (survivedLevelsCount == 1 ? "" : "s");
+        SoundEffectsManager.Play("GameOver");
         Time.timeScale = 0f; // Freeze the game
     }
 
@@ -81,46 +82,59 @@ public class GameController : MonoBehaviour
 
     private void IncreaseProgressAmount(int amount)
     {
-        progressAmount += amount;
-        progressSlider.value = progressAmount;
+       progressAmount += amount;
+    progressSlider.value = progressAmount;
 
-        if (progressAmount >= 100)
-        {
-            loadCanvas.SetActive(true);
-            Debug.Log("Level Complete");
-        }
+    if (progressAmount >= 100)
+    {
+        Debug.Log("Level Complete");
+
+        // ✅ Show the level complete menu
+        LevelCompleteMenu.Show();
+
+        // Optional: hide or disable loadCanvas if not needed
+        loadCanvas.SetActive(false); // or true, if it’s a transition background
+    }
     }
 
     private void LoadLevel(int level, bool wantSurvivedIncrease)
+{
+    loadCanvas.SetActive(false);
+
+    if (level < 0 || level >= levels.Count)
     {
-        loadCanvas.SetActive(false);
-
-        if (level < 0 || level >= levels.Count)
-        {
-            Debug.LogWarning("Invalid level index!");
-            return;
-        }
-
-        levels[currentLevelIndex].SetActive(false);
-        levels[level].SetActive(true);
-
-        currentLevelIndex = level;
-        progressAmount = 0;
-        progressSlider.value = 0;
-
-        if (wantSurvivedIncrease)
-        {
-            survivedLevelsCount++;
-        }
-
-        // Reset player position to origin or safe spawn point
-        player.transform.position = Vector3.zero;
-
-        if (!IsBusyWithUIOrAnimation() && spawner != null)
-        {
-            spawner.ResetSpawner();
-        }
+        Debug.LogWarning("Invalid level index!");
+        return;
     }
+
+    // ✅ Disable the current level if it exists
+    if (currentLevelIndex >= 0 && currentLevelIndex < levels.Count)
+    {
+        levels[currentLevelIndex].SetActive(false);
+    }
+
+    // ✅ Activate the new level
+    levels[level].SetActive(true);
+    currentLevelIndex = level;
+
+    progressAmount = 0;
+    progressSlider.value = 0;
+
+    if (wantSurvivedIncrease)
+    {
+        survivedLevelsCount++;
+    }
+
+    // Reset player position
+    player.transform.position = Vector3.zero;
+
+    // Reset enemies, spawners, etc.
+    if (!IsBusyWithUIOrAnimation() && spawner != null)
+    {
+        spawner.ResetSpawner();
+    }
+}
+
 
     private void LoadNextLevel()
     {

@@ -37,12 +37,12 @@ public class Enemy : MonoBehaviour
         }
 
         // Move towards player
-        rb.velocity = new Vector2(direction * chaseSpeed, rb.velocity.y);
+        rb.linearVelocity = new Vector2(direction * chaseSpeed, rb.linearVelocity.y);
 
         if (debugLogs)
         {
             Debug.Log($"[Enemy] direction: {direction}, chaseSpeed: {chaseSpeed}");
-            Debug.Log($"[Enemy] velocity set to: {rb.velocity}");
+            Debug.Log($"[Enemy] velocity set to: {rb.linearVelocity}");
         }
     }
 

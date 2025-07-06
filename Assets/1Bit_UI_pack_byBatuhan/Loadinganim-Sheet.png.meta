@@ -222,7 +222,11 @@ TextureImporter:
     secondaryTextures: []
     spriteCustomMetadata:
       entries: []
-    nameFileIdTable: {}
+    nameFileIdTable:
+      Loadinganim-Sheet_0: -6811031765264267011
+      Loadinganim-Sheet_1: -4047266432212894802
+      Loadinganim-Sheet_2: 2814417207329062050
+      Loadinganim-Sheet_3: 315915827345038922
   mipmapLimitGroupName: 
   pSDRemoveMatte: 0
   userData: 
