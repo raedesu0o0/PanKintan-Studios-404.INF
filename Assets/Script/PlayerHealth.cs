@@ -4,9 +4,11 @@ using System.Collections;
 
 public class PlayerHealth : MonoBehaviour
 {
+    [Header("Health Settings")]
     public int maxHealth = 7;
     private int currentHealth;
 
+    [Header("References")]
     public HealthUI healthUI;
     public SpriteRenderer spriteRenderer;
 
@@ -33,25 +35,28 @@ public class PlayerHealth : MonoBehaviour
             Rigidbody2D rb = GetComponent<Rigidbody2D>();
             if (rb != null)
             {
-                rb.linearVelocity = new Vector2(rb.linearVelocity.x, trap.bounceForce);
+                rb.velocity = new Vector2(rb.velocity.x, trap.bounceForce);
             }
+
+            SoundEffectsManager.Play("Player Hit");
         }
     }
 
-    private void ResetHealth()
+    public void ResetHealth()
     {
         currentHealth = maxHealth;
 
         if (healthUI != null)
         {
-            healthUI.SetMaxHearts(maxHealth, currentHealth); // ✅ fixed
+            healthUI.SetMaxHearts(maxHealth, currentHealth);
             healthUI.UpdateHealth(currentHealth);
-            Debug.Log($"[PlayerHealth] Health reset to {currentHealth}");
         }
         else
         {
-            Debug.LogWarning("[PlayerHealth] healthUI reference not assigned!");
+            Debug.LogWarning("[PlayerHealth] Health UI not assigned!");
         }
+
+        Debug.Log($"[PlayerHealth] Health reset to {currentHealth}");
     }
 
     public void TakeDamage(int damage)
@@ -64,9 +69,11 @@ public class PlayerHealth : MonoBehaviour
             healthUI.UpdateHealth(currentHealth);
         }
 
+        StartCoroutine(FlashRed());
+
         if (currentHealth == 0)
         {
-            Debug.Log("Player has died.");
+            Debug.Log("[PlayerHealth] Player has died.");
             OnPlayerDied?.Invoke();
         }
     }
@@ -78,23 +85,21 @@ public class PlayerHealth : MonoBehaviour
 
         if (healthUI != null)
         {
-            healthUI.SetMaxHearts(maxHealth, currentHealth); // ✅ fixed
+            healthUI.SetMaxHearts(maxHealth, currentHealth);
             healthUI.UpdateHealth(currentHealth);
         }
 
         Debug.Log($"[PlayerHealth] Max health increased to {maxHealth}");
     }
 
-    private IEnumerator Respawn()
-    {
-        yield return new WaitForSeconds(2f);
-        transform.position = Vector3.zero;
-        ResetHealth();
-    }
-
     private IEnumerator FlashRed()
     {
-        SpriteRenderer spriteRenderer = GetComponent<SpriteRenderer>();
+        if (spriteRenderer == null)
+        {
+            Debug.LogWarning("[PlayerHealth] SpriteRenderer not assigned!");
+            yield break;
+        }
+
         Color originalColor = spriteRenderer.color;
 
         for (int i = 0; i < 3; i++)

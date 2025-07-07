@@ -20,6 +20,13 @@ public class ObjectSpawner : MonoBehaviour
     private List<GameObject> spawnedObjects = new List<GameObject>();
     private bool isSpawning = false;
 
+    private Transform spawnParent;
+
+    public void SetParent(Transform parent)
+    {
+        spawnParent = parent;
+    }
+
     void Start()
     {
         GatherValidPositions();
@@ -91,7 +98,6 @@ public class ObjectSpawner : MonoBehaviour
         int randomIndex = Random.Range(0, validSpawnPositions.Count);
         Vector3 spawnPosition = validSpawnPositions[randomIndex];
 
-        // Skip if off camera
         Camera cam = Camera.main;
         if (cam != null)
         {
@@ -103,16 +109,14 @@ public class ObjectSpawner : MonoBehaviour
             }
         }
 
-        // Skip if already occupied
         if (PositionHasObject(spawnPosition)) return;
 
         ObjectType objectType = RandomObjectType();
         GameObject prefabToSpawn = objectprefabs[(int)objectType];
 
-        GameObject spawned = Instantiate(prefabToSpawn, spawnPosition, Quaternion.identity);
+        GameObject spawned = Instantiate(prefabToSpawn, spawnPosition, Quaternion.identity, spawnParent);
         spawnedObjects.Add(spawned);
 
-        // Destroy gems after a while
         if (objectType != ObjectType.Enemy)
         {
             Destroy(spawned, gemLifetime);

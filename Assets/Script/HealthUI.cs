@@ -4,6 +4,7 @@ using System.Collections.Generic;
 
 public class HealthUI : MonoBehaviour
 {
+    [Header("Heart Settings")]
     public Image heartPrefab;
     public Sprite fullHeartSprite;
     public Sprite emptyHeartSprite;
@@ -12,19 +13,20 @@ public class HealthUI : MonoBehaviour
 
     public void SetMaxHearts(int maxHearts, int currentHealth)
     {
+        // Remove old hearts
         foreach (Image heart in hearts)
         {
             Destroy(heart.gameObject);
         }
-
         hearts.Clear();
 
+        // Create new hearts
         for (int i = 0; i < maxHearts; i++)
         {
-            Image heart = Instantiate(heartPrefab, transform);
-            heart.sprite = i < currentHealth ? fullHeartSprite : emptyHeartSprite;
-            heart.color = i < currentHealth ? Color.red : Color.gray;
-            hearts.Add(heart);
+            Image newHeart = Instantiate(heartPrefab, transform);
+            newHeart.sprite = i < currentHealth ? fullHeartSprite : emptyHeartSprite;
+            newHeart.color = i < currentHealth ? Color.red : Color.gray;
+            hearts.Add(newHeart);
         }
     }
 

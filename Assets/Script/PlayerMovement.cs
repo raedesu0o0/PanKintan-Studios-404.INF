@@ -32,26 +32,26 @@ public class PlayerMovement : MonoBehaviour
         Flip();
 
         // Reset jumps when vertical velocity is near zero (landing)
-        if (Mathf.Abs(rb.linearVelocity.y) < 0.05f)
+        if (Mathf.Abs(rb.velocity.y) < 0.05f)
         {
             jumpsRemaining = maxJumps;
         }
 
         // Animator updates
-        animator.SetFloat("yvelocity", rb.linearVelocity.y);
+        animator.SetFloat("yvelocity", rb.velocity.y);
         animator.SetFloat("Magnitude", Mathf.Abs(horizontalMovement));
     }
 
     void FixedUpdate()
     {
         // Move horizontally
-        rb.linearVelocity = new Vector2(horizontalMovement * moveSpeed, rb.linearVelocity.y);
+        rb.velocity = new Vector2(horizontalMovement * moveSpeed, rb.velocity.y);
 
         // Custom gravity when falling
-        if (rb.linearVelocity.y < 0)
+        if (rb.velocity.y < 0)
         {
             rb.gravityScale = baseGravity * fallGravityMult;
-            rb.linearVelocity = new Vector2(rb.linearVelocity.x, Mathf.Max(rb.linearVelocity.y, -maxFallSpeed));
+            rb.velocity = new Vector2(rb.velocity.x, Mathf.Max(rb.velocity.y, -maxFallSpeed));
         }
         else
         {
@@ -68,16 +68,16 @@ public class PlayerMovement : MonoBehaviour
     {
         if (context.performed && jumpsRemaining > 0)
         {
-            rb.linearVelocity = new Vector2(rb.linearVelocity.x, jumpPower);
+            rb.velocity = new Vector2(rb.velocity.x, jumpPower);
             jumpsRemaining--;
             animator.SetTrigger("Jump");
             smokeFX.Play();
         }
 
         // Optional short-hop cancellation
-        if (context.canceled && rb.linearVelocity.y > 0)
+        if (context.canceled && rb.velocity.y > 0)
         {
-            rb.linearVelocity = new Vector2(rb.linearVelocity.x, rb.linearVelocity.y * 0.5f);
+            rb.velocity = new Vector2(rb.velocity.x, rb.velocity.y * 0.5f);
         }
     }
 

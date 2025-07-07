@@ -184,3 +184,4 @@ MonoBehaviour:
   groundCheckPos: {fileID: 0}
   groundCheckRadius: 0.2
   damage: 1
+  debugLogs: 0
