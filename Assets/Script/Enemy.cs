@@ -2,21 +2,28 @@ using UnityEngine;
 
 public class Enemy : MonoBehaviour
 {
+    [Header("References")]
     public Transform player;
+    public Rigidbody2D rb;
+    public Animator animator;
+    public Transform groundCheckPos;
+
+    [Header("Movement Settings")]
     public float chaseSpeed = 2f;
-    public float jumpForce = 2f;
+    public float jumpForce = 7f;
+    public float jumpHeightThreshold = 1.5f;
+    public float groundCheckRadius = 0.2f;
     public LayerMask groundLayer;
 
-    private Rigidbody2D rb;
-    public Transform groundCheckPos;
-    public float groundCheckRadius = 0.2f;
-    public int damage = 1;
-
+    [Header("Debug")]
     public bool debugLogs = false;
+
+    private Vector3 originalScale;
 
     void Start()
     {
         rb = GetComponent<Rigidbody2D>();
+        originalScale = transform.localScale;
     }
 
     private void FixedUpdate()
@@ -27,29 +34,46 @@ public class Enemy : MonoBehaviour
             return;
         }
 
-        // Get direction toward player
         float direction = Mathf.Sign(player.position.x - transform.position.x);
 
-        // Face player
         if (direction != 0)
         {
-            transform.localScale = new Vector3(direction, 1, 1);
+            transform.localScale = new Vector3(originalScale.x * direction, originalScale.y, originalScale.z);
         }
 
-        // Move towards player
         rb.velocity = new Vector2(direction * chaseSpeed, rb.velocity.y);
 
-        if (debugLogs)
+        bool playerIsAbove = player.position.y - transform.position.y > jumpHeightThreshold;
+
+        if (playerIsAbove && IsGrounded())
         {
-            Debug.Log($"[Enemy] direction: {direction}, chaseSpeed: {chaseSpeed}");
-            Debug.Log($"[Enemy] velocity set to: {rb.velocity}");
+            rb.AddForce(Vector2.up * jumpForce, ForceMode2D.Impulse);
+            animator.SetTrigger("jump");
+
+            if (debugLogs)
+                Debug.Log("[Enemy] Jumping to reach higher platform.");
         }
+
+        animator.SetFloat("magnitude", Mathf.Abs(rb.velocity.x));
+    }
+
+    private bool IsGrounded()
+    {
+        return Physics2D.OverlapCircle(groundCheckPos.position, groundCheckRadius, groundLayer);
     }
 
     private void OnDrawGizmosSelected()
     {
-        Vector2 checkPos = groundCheckPos ? (Vector2)groundCheckPos.position : (Vector2)transform.position + Vector2.down * 0.5f;
-        Gizmos.color = Color.red;
-        Gizmos.DrawWireSphere(checkPos, groundCheckRadius);
+        if (groundCheckPos != null)
+        {
+            Gizmos.color = Color.red;
+            Gizmos.DrawWireSphere(groundCheckPos.position, groundCheckRadius);
+        }
+
+        if (player != null)
+        {
+            Gizmos.color = Color.cyan;
+            Gizmos.DrawLine(transform.position, player.position);
+        }
     }
 }

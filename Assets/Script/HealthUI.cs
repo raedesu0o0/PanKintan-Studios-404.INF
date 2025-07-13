@@ -5,37 +5,100 @@ using System.Collections.Generic;
 public class HealthUI : MonoBehaviour
 {
     [Header("Heart Settings")]
-    public Image heartPrefab;
-    public Sprite fullHeartSprite;
-    public Sprite emptyHeartSprite;
+    [SerializeField] private Image heartPrefab;
+    [SerializeField] private Sprite fullHeartSprite;
+    [SerializeField] private Sprite emptyHeartSprite;
+    [SerializeField] private float heartSpacing = 30f;
+    [SerializeField] private Color fullHeartColor = Color.red;
+    [SerializeField] private Color emptyHeartColor = new Color(0.5f, 0.5f, 0.5f, 0.7f);
 
     private List<Image> hearts = new List<Image>();
+    private Canvas parentCanvas;
 
-    public void SetMaxHearts(int maxHearts, int currentHealth)
+    private void Awake()
     {
-        // Remove old hearts
-        foreach (Image heart in hearts)
+        DontDestroyOnLoad(gameObject);
+        parentCanvas = GetComponentInParent<Canvas>();
+        if (parentCanvas != null)
         {
-            Destroy(heart.gameObject);
+            DontDestroyOnLoad(parentCanvas.gameObject);
         }
-        hearts.Clear();
+    }
 
-        // Create new hearts
+    public void Initialize(int maxHearts, int currentHealth)
+    {
+        ClearHearts();
+        CreateHearts(maxHearts, currentHealth);
+    }
+
+    private void CreateHearts(int maxHearts, int currentHealth)
+    {
+        float startX = -(maxHearts - 1) * heartSpacing / 2f;
+
         for (int i = 0; i < maxHearts; i++)
         {
             Image newHeart = Instantiate(heartPrefab, transform);
-            newHeart.sprite = i < currentHealth ? fullHeartSprite : emptyHeartSprite;
-            newHeart.color = i < currentHealth ? Color.red : Color.gray;
+            newHeart.rectTransform.anchoredPosition = new Vector2(
+                startX + i * heartSpacing, 
+                0f
+            );
+            UpdateHeartVisual(newHeart, i < currentHealth);
             hearts.Add(newHeart);
         }
     }
 
     public void UpdateHealth(int currentHealth)
     {
+        if (hearts.Count == 0) return;
+
         for (int i = 0; i < hearts.Count; i++)
         {
-            hearts[i].sprite = i < currentHealth ? fullHeartSprite : emptyHeartSprite;
-            hearts[i].color = i < currentHealth ? Color.red : Color.gray;
+            if (hearts[i] != null)
+            {
+                bool isFull = i < currentHealth;
+                UpdateHeartVisual(hearts[i], isFull);
+            }
+        }
+    }
+
+    private void UpdateHeartVisual(Image heart, bool isFull)
+    {
+        heart.sprite = isFull ? fullHeartSprite : emptyHeartSprite;
+        heart.color = isFull ? fullHeartColor : emptyHeartColor;
+    }
+
+    private void ClearHearts()
+    {
+        foreach (Image heart in hearts)
+        {
+            if (heart != null)
+            {
+                if (Application.isPlaying)
+                {
+                    Destroy(heart.gameObject);
+                }
+                else
+                {
+                    DestroyImmediate(heart.gameObject);
+                }
+            }
+        }
+        hearts.Clear();
+    }
+
+    public void ResetUI()
+    {
+        ClearHearts();
+        if (gameObject != null && gameObject != this)
+        {
+            if (Application.isPlaying)
+            {
+                Destroy(gameObject);
+            }
+            else
+            {
+                DestroyImmediate(gameObject);
+            }
         }
     }
 }

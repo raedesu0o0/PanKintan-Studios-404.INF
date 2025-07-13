@@ -6,6 +6,11 @@ TagManager:
   tags:
   - MusicSlider
   - Enemy
+  - BouncePad
+  - Trap
+  - ProgressSlider
+  - LoadCanvas
+  - GameOverScreen
   layers:
   - Default
   - TransparentFX

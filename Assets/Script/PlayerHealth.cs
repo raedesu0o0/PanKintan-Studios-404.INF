@@ -1,113 +1,142 @@
 using UnityEngine;
 using System;
-using System.Collections;
 
 public class PlayerHealth : MonoBehaviour
 {
     [Header("Health Settings")]
     public int maxHealth = 7;
-    private int currentHealth;
+    public float invincibleDuration = 2f;
+    public SpriteRenderer spriteRenderer;
 
     [Header("References")]
-    public HealthUI healthUI;
-    public SpriteRenderer spriteRenderer;
+    [SerializeField] private HealthUI healthUIPrefab;  // For prefab assignment
+    [NonSerialized] public HealthUI healthUI;          // Single runtime reference
+
+    private int currentHealth;
+    private bool isInvincible = false;
+    private float invincibleTimer = 0f;
 
     public static event Action OnPlayerDied;
 
-    void Start()
+    private void Awake()
     {
+        InitializeHealthUI();
         ResetHealth();
     }
 
-    private void OnTriggerEnter2D(Collider2D collision)
+    private void InitializeHealthUI()
     {
-        if (collision.CompareTag("Enemy"))
+        // Find existing or create new HealthUI
+        healthUI = FindAnyObjectByType<HealthUI>();
+        if (healthUI == null && healthUIPrefab != null)
+        {
+            healthUI = Instantiate(healthUIPrefab);
+            var canvas = FindAnyObjectByType<Canvas>();
+            if (canvas != null)
+            {
+                healthUI.transform.SetParent(canvas.transform, false);
+                healthUI.transform.localPosition = Vector3.zero; 
+            }
+        }
+    }
+    private void Update()
+    {
+        HandleInvincibility();
+    }
+
+    private void HandleInvincibility()
+    {
+        if (!isInvincible) return;
+
+        invincibleTimer -= Time.deltaTime;
+        spriteRenderer.color = (Mathf.Floor(invincibleTimer * 10f) % 2 == 0) ? Color.clear : Color.white;
+        
+        if (invincibleTimer <= 0f)
+        {
+            isInvincible = false;
+            spriteRenderer.color = Color.white;
+        }
+    }
+
+    private void OnCollisionEnter2D(Collision2D collision)
+    {
+        if (collision.gameObject.CompareTag("Enemy") && !isInvincible)
         {
             TakeDamage(1);
-            SoundEffectsManager.Play("Player Hit");
+            SoundManager.PlaySound("PlayerHit");
         }
+    }
 
-        Traps trap = collision.GetComponent<Traps>();
-        if (trap)
+    private void OnTriggerEnter2D(Collider2D other)
+    {
+        HandleTrapDamage(other);
+        HandleBouncePad(other);
+    }
+
+    private void HandleTrapDamage(Collider2D other)
+    {
+        if (!other.CompareTag("BouncePad") && !isInvincible)
         {
-            TakeDamage(trap.damage);
-
-            Rigidbody2D rb = GetComponent<Rigidbody2D>();
-            if (rb != null)
+            Traps trap = other.GetComponent<Traps>();
+            if (trap != null)
             {
-                rb.velocity = new Vector2(rb.velocity.x, trap.bounceForce);
+                TakeDamage(trap.damage);
+                ApplyBounceForce(trap.bounceForce);
             }
+        }
+    }
 
-            SoundEffectsManager.Play("Player Hit");
+    private void HandleBouncePad(Collider2D other)
+    {
+        if (other.CompareTag("BouncePad"))
+        {
+            Traps bouncePad = other.GetComponent<Traps>();
+            if (bouncePad != null)
+            {
+                ApplyBounceForce(bouncePad.bounceForce);
+            }
+        }
+    }
+
+    private void ApplyBounceForce(float force)
+    {
+        Rigidbody2D rb = GetComponent<Rigidbody2D>();
+        if (rb != null)
+        {
+            rb.velocity = new Vector2(rb.velocity.x, force);
+        }
+    }
+
+    public void TakeDamage(int amount)
+    {
+        if (isInvincible) return;
+
+        currentHealth = Mathf.Max(currentHealth - amount, 0);
+        healthUI?.UpdateHealth(currentHealth);
+
+        isInvincible = true;
+        invincibleTimer = invincibleDuration;
+
+        if (currentHealth <= 0)
+        {
+            OnPlayerDied?.Invoke();
         }
     }
 
     public void ResetHealth()
     {
         currentHealth = maxHealth;
-
-        if (healthUI != null)
-        {
-            healthUI.SetMaxHearts(maxHealth, currentHealth);
-            healthUI.UpdateHealth(currentHealth);
-        }
-        else
-        {
-            Debug.LogWarning("[PlayerHealth] Health UI not assigned!");
-        }
-
-        Debug.Log($"[PlayerHealth] Health reset to {currentHealth}");
+        healthUI?.Initialize(maxHealth, currentHealth);
+        isInvincible = false;
+        spriteRenderer.color = Color.white;
     }
 
-    public void TakeDamage(int damage)
+    private void OnDestroy()
+{
+    // Clean up when player is destroyed (e.g., new scene load)
+    if (healthUI != null && FindAnyObjectByType<PlayerHealth>() == this)
     {
-        currentHealth -= damage;
-        if (currentHealth < 0) currentHealth = 0;
-
-        if (healthUI != null)
-        {
-            healthUI.UpdateHealth(currentHealth);
-        }
-
-        StartCoroutine(FlashRed());
-
-        if (currentHealth == 0)
-        {
-            Debug.Log("[PlayerHealth] Player has died.");
-            OnPlayerDied?.Invoke();
-        }
+        Destroy(healthUI.gameObject);
     }
-
-    public void AddMaxHealth(int amount)
-    {
-        maxHealth += amount;
-        currentHealth = maxHealth;
-
-        if (healthUI != null)
-        {
-            healthUI.SetMaxHearts(maxHealth, currentHealth);
-            healthUI.UpdateHealth(currentHealth);
-        }
-
-        Debug.Log($"[PlayerHealth] Max health increased to {maxHealth}");
-    }
-
-    private IEnumerator FlashRed()
-    {
-        if (spriteRenderer == null)
-        {
-            Debug.LogWarning("[PlayerHealth] SpriteRenderer not assigned!");
-            yield break;
-        }
-
-        Color originalColor = spriteRenderer.color;
-
-        for (int i = 0; i < 3; i++)
-        {
-            spriteRenderer.color = Color.red;
-            yield return new WaitForSeconds(0.1f);
-            spriteRenderer.color = originalColor;
-            yield return new WaitForSeconds(0.1f);
-        }
-    }
+}
 }

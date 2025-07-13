@@ -115,6 +115,7 @@ public class ObjectSpawner : MonoBehaviour
         GameObject prefabToSpawn = objectprefabs[(int)objectType];
 
         GameObject spawned = Instantiate(prefabToSpawn, spawnPosition, Quaternion.identity, spawnParent);
+        spawned.tag = objectType == ObjectType.Enemy ? "Enemy" : "Untagged";
         spawnedObjects.Add(spawned);
 
         if (objectType != ObjectType.Enemy)

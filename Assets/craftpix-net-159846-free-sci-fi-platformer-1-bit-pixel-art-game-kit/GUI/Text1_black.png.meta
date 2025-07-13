@@ -1047,7 +1047,44 @@ TextureImporter:
     secondaryTextures: []
     spriteCustomMetadata:
       entries: []
-    nameFileIdTable: {}
+    nameFileIdTable:
+      Text1_black_0: 5744238747137589663
+      Text1_black_1: -2068694009048223849
+      Text1_black_10: 8649594652581195452
+      Text1_black_11: -8191513214064954002
+      Text1_black_12: 94460778945475082
+      Text1_black_13: 1377560534727652054
+      Text1_black_14: -5717106807609740632
+      Text1_black_15: -8639140080624742405
+      Text1_black_16: 6786430127666862658
+      Text1_black_17: -474544331132361879
+      Text1_black_18: -4545351427386119008
+      Text1_black_19: -4307681573346200565
+      Text1_black_2: -8776162168070236157
+      Text1_black_20: 2864944872356130170
+      Text1_black_21: 4365461447679902493
+      Text1_black_22: 6726623413226127407
+      Text1_black_23: -6774970615364864984
+      Text1_black_24: -5804909872930037405
+      Text1_black_25: -1130726510856079443
+      Text1_black_26: -2759920148311069204
+      Text1_black_27: -963922573703923682
+      Text1_black_28: -7952149299565170361
+      Text1_black_29: 659107660823688007
+      Text1_black_3: -2435223696611352764
+      Text1_black_30: -3954128583952472335
+      Text1_black_31: 3822538467619441223
+      Text1_black_32: 3375282624284442817
+      Text1_black_33: 3610537921601617566
+      Text1_black_34: -7659156537621569129
+      Text1_black_35: -5373236572089379085
+      Text1_black_36: -3020820364045146323
+      Text1_black_4: -1441473266928463212
+      Text1_black_5: 7217692054791042835
+      Text1_black_6: -69113356136606103
+      Text1_black_7: 7131037455971919818
+      Text1_black_8: -8618915575040277928
+      Text1_black_9: -4766116962739301650
   mipmapLimitGroupName: 
   pSDRemoveMatte: 0
   userData: 
