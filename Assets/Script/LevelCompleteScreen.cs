@@ -36,7 +36,10 @@ public class LevelCompleteMenu : MonoBehaviour
         {
             Debug.LogError("[LevelCompleteMenu] Cannot show: 'levelCompleteMenu' is null!");
         }
-        SoundEffectsManager.Play("LevelComplete");
+        if (SoundEffectsManager.Instance != null) 
+{
+    SoundEffectsManager.Instance.Play("LevelComplete");
+}
     }
 
     public static void Show()

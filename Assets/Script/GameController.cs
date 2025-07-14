@@ -2,57 +2,65 @@ using UnityEngine;
 using UnityEngine.SceneManagement;
 using UnityEngine.UI;
 using System;
+using System.Collections;
 
 public class GameController : MonoBehaviour
 {
-    [Header("UI Elements")]
+    [Header("UI Elements - Assign in Each Scene")]
     [SerializeField] private Slider progressSlider;
     [SerializeField] private GameObject loadCanvas;
     [SerializeField] private GameObject gameOverScreen;
-    [SerializeField] private HealthUI healthUIPrefab;
+    [SerializeField] private HealthUI healthUI;
 
-    [Header("Gameplay")]
+    [Header("Gameplay Elements")]
     public GameObject playerPrefab;
+    public Transform playerSpawnPoint;
+
+    [Header("Scene Index Config")]
     public int firstLevelSceneIndex = 2;
     public int lastLevelSceneIndex = 4;
-    
+
     private int currentLevelIndex;
     private int progressAmount;
-    private HealthUI healthUIInstance;
     private GameObject currentPlayer;
+    private bool hasLoadedNext = false; // Prevents multiple scene loads
 
     public static event Action OnReset;
 
-    private void Awake()
-    {
-        // Singleton pattern
-        var existing = FindAnyObjectByType<GameController>();
-        if (existing != null && existing != this)
-        {
-            Destroy(gameObject);
-            return;
-        }
-
-        DontDestroyOnLoad(gameObject);
-        InitializePersistentUI();
-    }
-
     private void Start()
     {
-        InitializeGameState();
+        currentLevelIndex = SceneManager.GetActiveScene().buildIndex; // Ensure it's set
         SubscribeToEvents();
+        SceneManager.sceneLoaded += OnSceneLoaded;
+    }
+
+    private void OnSceneLoaded(Scene scene, LoadSceneMode mode)
+    {
+        // Assign scene-specific references
+        progressSlider = GameObject.Find("ProgressSlider")?.GetComponent<Slider>();
+        loadCanvas = GameObject.Find("LoadCanvas");
+        gameOverScreen = GameObject.Find("GameOverScreen");
+        healthUI = FindObjectOfType<HealthUI>();
+
+        // Log if something is missing
+        if (progressSlider == null) Debug.LogError("[GameController] Progress Slider not found in scene!");
+        if (loadCanvas == null) Debug.LogError("[GameController] Load Canvas not found in scene!");
+        if (gameOverScreen == null) Debug.LogError("[GameController] Game Over Screen not found in scene!");
+        if (healthUI == null) Debug.LogError("[GameController] Health UI not found in scene!");
+
+        InitializeGameState();
     }
 
     private void InitializeGameState()
     {
         Time.timeScale = 1f;
         progressAmount = 0;
+        hasLoadedNext = false;
+        currentLevelIndex = SceneManager.GetActiveScene().buildIndex;
+
         if (progressSlider != null) progressSlider.value = 0;
         if (loadCanvas != null) loadCanvas.SetActive(false);
         if (gameOverScreen != null) gameOverScreen.SetActive(false);
-
-        currentLevelIndex = SceneManager.GetActiveScene().buildIndex;
-        SceneManager.sceneLoaded += OnSceneLoaded;
 
         SpawnPlayer();
     }
@@ -60,141 +68,107 @@ public class GameController : MonoBehaviour
     private void SubscribeToEvents()
     {
         Gems.OnGemCollect += IncreaseProgressAmount;
-        HoldToLoadLevel.OnHoldComplete += LoadNextLevel;
         PlayerHealth.OnPlayerDied += ShowGameOverScreen;
-    }
-
-    private void InitializePersistentUI()
-    {
-        // Initialize health UI
-        healthUIInstance = FindAnyObjectByType<HealthUI>();
-        if (healthUIInstance == null && healthUIPrefab != null)
-        {
-            healthUIInstance = Instantiate(healthUIPrefab);
-            DontDestroyOnLoad(healthUIInstance.gameObject);
-        }
-
-        ReparentUIToMainCanvas();
-    }
-
-    private void ReparentUIToMainCanvas()
-    {
-        Canvas mainCanvas = FindAnyObjectByType<Canvas>();
-        if (mainCanvas == null) return;
-
-        if (progressSlider != null) 
-        {
-            progressSlider.transform.SetParent(mainCanvas.transform, false);
-            progressSlider.gameObject.SetActive(true);
-        }
-        
-        if (loadCanvas != null) 
-        {
-            loadCanvas.transform.SetParent(mainCanvas.transform, false);
-            loadCanvas.SetActive(false);
-        }
-        
-        if (gameOverScreen != null) 
-        {
-            gameOverScreen.transform.SetParent(mainCanvas.transform, false);
-            gameOverScreen.SetActive(false);
-        }
-        
-        if (healthUIInstance != null) 
-        {
-            healthUIInstance.transform.SetParent(mainCanvas.transform, false);
-            healthUIInstance.gameObject.SetActive(true);
-        }
     }
 
     private void SpawnPlayer()
     {
-        if (currentPlayer != null) return;
-        if (playerPrefab == null) return;
-
-        currentPlayer = Instantiate(playerPrefab);
-        var playerHealth = currentPlayer.GetComponent<PlayerHealth>();
-        if (playerHealth != null && healthUIInstance != null)
+        if (playerPrefab == null)
         {
-            playerHealth.healthUI = healthUIInstance;
+            Debug.LogWarning("[GameController] Player prefab is not assigned.");
+            return;
+        }
+
+        if (currentPlayer != null)
+            Destroy(currentPlayer);
+
+        Vector3 spawnPosition = playerSpawnPoint != null ? playerSpawnPoint.position : Vector3.zero;
+        currentPlayer = Instantiate(playerPrefab, spawnPosition, Quaternion.identity);
+
+        var playerHealth = currentPlayer.GetComponent<PlayerHealth>();
+        if (playerHealth != null && healthUI != null)
+        {
+            playerHealth.healthUI = healthUI;
             playerHealth.ResetHealth();
         }
     }
 
-    private void OnSceneLoaded(Scene scene, LoadSceneMode mode)
+    private void IncreaseProgressAmount(int amount)
     {
-        currentLevelIndex = scene.buildIndex;
-        ReparentUIToMainCanvas();
-        
-        if (progressSlider != null) 
+        if (progressSlider == null || hasLoadedNext) return;
+
+        progressAmount = Mathf.Clamp(progressAmount + amount, 0, 100);
+        progressSlider.value = progressAmount;
+
+        Debug.Log($"[GameController] Progress now at {progressAmount}%");
+
+        if (progressAmount >= 100)
         {
-            progressSlider.value = progressAmount;
+            hasLoadedNext = true;
+            StartCoroutine(LoadNextLevelAfterDelay(1.5f));
+        }
+    }
+
+    private IEnumerator LoadNextLevelAfterDelay(float delay)
+    {
+        if (loadCanvas != null)
+            loadCanvas.SetActive(true); // Optional UI feedback
+
+        yield return new WaitForSeconds(delay);
+
+        LoadNextLevel();
+    }
+
+    private void LoadNextLevel()
+    {
+        // Ensure we're only loading from valid levels
+        if (currentLevelIndex < firstLevelSceneIndex || currentLevelIndex > lastLevelSceneIndex)
+        {
+            Debug.LogWarning($"[GameController] Current scene ({currentLevelIndex}) is not a gameplay level.");
+            return;
         }
 
-        SpawnPlayer();
+        int nextIndex = currentLevelIndex + 1;
+
+        if (nextIndex > lastLevelSceneIndex)
+        {
+            Debug.Log("[GameController] Reached last level. Looping to first gameplay level.");
+            nextIndex = firstLevelSceneIndex;
+        }
+
+        Debug.Log($"[GameController] Loading scene index {nextIndex}");
+        SceneManager.LoadScene(nextIndex, LoadSceneMode.Single);
     }
 
     private void ShowGameOverScreen()
     {
+        Debug.Log("[GameController] Game Over triggered");
         if (gameOverScreen != null)
         {
             gameOverScreen.SetActive(true);
             Time.timeScale = 0f;
-            SoundManager.PlaySound("GameOver");
+
+            if (SoundEffectsManager.Instance != null)
+                SoundEffectsManager.Instance.Play("GameOver");
+        }
+        else
+        {
+            Debug.LogWarning("[GameController] GameOver screen not assigned.");
         }
     }
 
     public void ResetGame()
     {
-        if (gameOverScreen != null) gameOverScreen.SetActive(false);
         Time.timeScale = 1f;
-
-        currentLevelIndex = firstLevelSceneIndex;
-        progressAmount = 0;
-        if (progressSlider != null) progressSlider.value = 0;
-        
-        SceneManager.LoadScene(currentLevelIndex);
+        if (gameOverScreen != null) gameOverScreen.SetActive(false);
+        SceneManager.LoadScene(firstLevelSceneIndex);
         OnReset?.Invoke();
-    }
-
-    private void IncreaseProgressAmount(int amount)
-    {
-        if (progressSlider == null) return;
-
-        progressAmount = Mathf.Clamp(progressAmount + amount, 0, 100);
-        progressSlider.value = progressAmount;
-
-        if (progressAmount >= 100 && loadCanvas != null)
-        {
-            loadCanvas.SetActive(true);
-        }
-    }
-
-    private void LoadNextLevel()
-    {
-        int nextIndex = currentLevelIndex + 1;
-        if (nextIndex > lastLevelSceneIndex)
-            nextIndex = firstLevelSceneIndex;
-
-        currentLevelIndex = nextIndex;
-        progressAmount = 0;
-        if (progressSlider != null) progressSlider.value = 0;
-        if (loadCanvas != null) loadCanvas.SetActive(false);
-
-        SceneManager.LoadScene(currentLevelIndex);
     }
 
     private void OnDestroy()
     {
         SceneManager.sceneLoaded -= OnSceneLoaded;
         Gems.OnGemCollect -= IncreaseProgressAmount;
-        HoldToLoadLevel.OnHoldComplete -= LoadNextLevel;
         PlayerHealth.OnPlayerDied -= ShowGameOverScreen;
-
-        // Clean up health UI if this is the last GameController
-        if (healthUIInstance != null && FindAnyObjectByType<GameController>() == null)
-        {
-            Destroy(healthUIInstance.gameObject);
-        }
     }
 }

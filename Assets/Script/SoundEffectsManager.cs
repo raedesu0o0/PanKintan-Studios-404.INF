@@ -1,15 +1,14 @@
 using UnityEngine;
 using UnityEngine.UI;
 
-
 public class SoundEffectsManager : MonoBehaviour
 {
-    private static SoundEffectsManager Instance;
-    private static AudioSource audioSource;
-    private static SoundEffectLib soundEffectLib;
+    public static SoundEffectsManager Instance { get; private set; }
+
+    private AudioSource audioSource;
+    private SoundEffectLib soundEffectLib;
 
     [SerializeField] private Slider sfxSlider;
-
 
     private void Awake()
     {
@@ -26,9 +25,15 @@ public class SoundEffectsManager : MonoBehaviour
         }
     }
 
-
-    public static void Play(string soundName)
+    // ✅ Make this an instance method (remove "static")
+    public void Play(string soundName)
     {
+        if (soundEffectLib == null || audioSource == null)
+        {
+            Debug.LogWarning("[SoundEffectsManager] Missing components.");
+            return;
+        }
+
         AudioClip audioClip = soundEffectLib.GetRandomClip(soundName);
         if (audioClip != null)
         {
@@ -36,14 +41,17 @@ public class SoundEffectsManager : MonoBehaviour
         }
     }
 
-    void Start()
+    private void Start()
     {
-        sfxSlider.onValueChanged.AddListener(delegate { OnValueChanged(); });
+        if (sfxSlider != null)
+            sfxSlider.onValueChanged.AddListener(delegate { OnValueChanged(); });
     }
 
-    public static void SetVolume(float volume)
+    // ✅ Also made non-static
+    public void SetVolume(float volume)
     {
-        audioSource.volume = volume;
+        if (audioSource != null)
+            audioSource.volume = volume;
     }
 
     public void OnValueChanged()

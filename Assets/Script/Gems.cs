@@ -1,15 +1,19 @@
 using UnityEngine;
 using System;
 
-
-public class Gems : MonoBehaviour, IITEM
+public class Gems : MonoBehaviour
 {
     public static event Action<int> OnGemCollect;
-    public int worth = 5;
-    public void Collect()
+
+    [SerializeField] private int gemValue = 10;
+
+    private void OnTriggerEnter2D(Collider2D other)
     {
-        OnGemCollect.Invoke(worth);
-        SoundEffectsManager.Play("Memory Shards");
-        Destroy(gameObject);
+        if (other.CompareTag("Player"))
+        {
+            OnGemCollect?.Invoke(gemValue);
+            Destroy(gameObject);
+        }
     }
 }
+

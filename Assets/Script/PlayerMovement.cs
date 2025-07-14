@@ -72,14 +72,6 @@ public class PlayerMovement : MonoBehaviour
             jumpsRemaining--;
             animator.SetTrigger("Jump");
             smokeFX.Play();
-            if (SoundEffectsManager.Instance != null)
-        {
-            SoundEffectsManager.Instance.Play("Jump");
-        }
-        else
-        {
-            Debug.LogWarning("SoundEffectsManager instance not found!");
-        }
         }
 
         // Optional short-hop cancellation

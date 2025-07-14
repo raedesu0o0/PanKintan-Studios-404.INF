@@ -1,142 +1,123 @@
 using UnityEngine;
 using System;
+using System.Collections;
 
 public class PlayerHealth : MonoBehaviour
 {
     [Header("Health Settings")]
     public int maxHealth = 7;
-    public float invincibleDuration = 2f;
-    public SpriteRenderer spriteRenderer;
+    private int currentHealth;
 
     [Header("References")]
-    [SerializeField] private HealthUI healthUIPrefab;  // For prefab assignment
-    [NonSerialized] public HealthUI healthUI;          // Single runtime reference
-
-    private int currentHealth;
-    private bool isInvincible = false;
-    private float invincibleTimer = 0f;
+    public HealthUI healthUI;
+    public SpriteRenderer spriteRenderer;
 
     public static event Action OnPlayerDied;
 
-    private void Awake()
+    private Color originalColor;
+
+    void Start()
     {
-        InitializeHealthUI();
+        if (spriteRenderer != null)
+            originalColor = spriteRenderer.color;
+
         ResetHealth();
     }
 
-    private void InitializeHealthUI()
+    private void OnTriggerEnter2D(Collider2D collision)
     {
-        // Find existing or create new HealthUI
-        healthUI = FindAnyObjectByType<HealthUI>();
-        if (healthUI == null && healthUIPrefab != null)
-        {
-            healthUI = Instantiate(healthUIPrefab);
-            var canvas = FindAnyObjectByType<Canvas>();
-            if (canvas != null)
-            {
-                healthUI.transform.SetParent(canvas.transform, false);
-                healthUI.transform.localPosition = Vector3.zero; 
-            }
-        }
-    }
-    private void Update()
-    {
-        HandleInvincibility();
-    }
-
-    private void HandleInvincibility()
-    {
-        if (!isInvincible) return;
-
-        invincibleTimer -= Time.deltaTime;
-        spriteRenderer.color = (Mathf.Floor(invincibleTimer * 10f) % 2 == 0) ? Color.clear : Color.white;
-        
-        if (invincibleTimer <= 0f)
-        {
-            isInvincible = false;
-            spriteRenderer.color = Color.white;
-        }
-    }
-
-    private void OnCollisionEnter2D(Collision2D collision)
-    {
-        if (collision.gameObject.CompareTag("Enemy") && !isInvincible)
+        // Enemy hit
+        if (collision.CompareTag("Enemy"))
         {
             TakeDamage(1);
-            SoundManager.PlaySound("PlayerHit");
+            SoundEffectsManager.Instance?.Play("Player Hit");
+            return;
         }
-    }
 
-    private void OnTriggerEnter2D(Collider2D other)
-    {
-        HandleTrapDamage(other);
-        HandleBouncePad(other);
-    }
-
-    private void HandleTrapDamage(Collider2D other)
-    {
-        if (!other.CompareTag("BouncePad") && !isInvincible)
+        // Trap hit (but not bounce pad)
+        if (collision.CompareTag("Trap") && !collision.CompareTag("BouncePad"))
         {
-            Traps trap = other.GetComponent<Traps>();
+            Traps trap = collision.GetComponent<Traps>();
             if (trap != null)
             {
                 TakeDamage(trap.damage);
-                ApplyBounceForce(trap.bounceForce);
+                SoundEffectsManager.Instance?.Play("Player Hit");
+
+                // Bounce logic
+                Rigidbody2D rb = GetComponent<Rigidbody2D>();
+                if (rb != null)
+                    rb.velocity = new Vector2(rb.velocity.x, trap.bounceForce);
             }
         }
-    }
 
-    private void HandleBouncePad(Collider2D other)
-    {
-        if (other.CompareTag("BouncePad"))
+        // BouncePad (launch only, no damage)
+        if (collision.CompareTag("BouncePad"))
         {
-            Traps bouncePad = other.GetComponent<Traps>();
-            if (bouncePad != null)
+            Traps trap = collision.GetComponent<Traps>();
+            if (trap != null)
             {
-                ApplyBounceForce(bouncePad.bounceForce);
+                Rigidbody2D rb = GetComponent<Rigidbody2D>();
+                if (rb != null)
+                    rb.velocity = new Vector2(rb.velocity.x, trap.bounceForce);
             }
-        }
-    }
-
-    private void ApplyBounceForce(float force)
-    {
-        Rigidbody2D rb = GetComponent<Rigidbody2D>();
-        if (rb != null)
-        {
-            rb.velocity = new Vector2(rb.velocity.x, force);
-        }
-    }
-
-    public void TakeDamage(int amount)
-    {
-        if (isInvincible) return;
-
-        currentHealth = Mathf.Max(currentHealth - amount, 0);
-        healthUI?.UpdateHealth(currentHealth);
-
-        isInvincible = true;
-        invincibleTimer = invincibleDuration;
-
-        if (currentHealth <= 0)
-        {
-            OnPlayerDied?.Invoke();
         }
     }
 
     public void ResetHealth()
     {
         currentHealth = maxHealth;
-        healthUI?.Initialize(maxHealth, currentHealth);
-        isInvincible = false;
-        spriteRenderer.color = Color.white;
+
+        if (healthUI != null)
+            healthUI.Initialize(maxHealth, currentHealth);
+
+        if (spriteRenderer != null)
+            spriteRenderer.color = originalColor;
+
+        Debug.Log($"[PlayerHealth] Reset health to {currentHealth}");
     }
 
-    private void OnDestroy()
-{
-    // Clean up when player is destroyed (e.g., new scene load)
-    if (healthUI != null && FindAnyObjectByType<PlayerHealth>() == this)
+    public void TakeDamage(int damage)
     {
-        Destroy(healthUI.gameObject);
+        currentHealth -= damage;
+        currentHealth = Mathf.Max(0, currentHealth);
+
+        if (healthUI != null)
+            healthUI.UpdateHealth(currentHealth);
+
+        StartCoroutine(FlashRed());
+
+        if (currentHealth == 0)
+        {
+            Debug.Log("[PlayerHealth] Player has died.");
+            OnPlayerDied?.Invoke();
+        }
     }
-}
+
+    public void AddMaxHealth(int amount)
+    {
+        maxHealth += amount;
+        currentHealth = maxHealth;
+
+        if (healthUI != null)
+            healthUI.Initialize(maxHealth, currentHealth);
+
+        Debug.Log($"[PlayerHealth] Max health increased to {maxHealth}");
+    }
+
+    private IEnumerator FlashRed()
+    {
+        if (spriteRenderer == null)
+        {
+            Debug.LogWarning("[PlayerHealth] SpriteRenderer not assigned!");
+            yield break;
+        }
+
+        for (int i = 0; i < 2; i++)
+        {
+            spriteRenderer.color = Color.red;
+            yield return new WaitForSeconds(0.1f);
+            spriteRenderer.color = originalColor;
+            yield return new WaitForSeconds(0.1f);
+        }
+    }
 }
